@@ -56,6 +56,42 @@ export type Database = {
         }
         Relationships: []
       }
+      client_calls: {
+        Row: {
+          call_duration: number | null
+          call_notes: string | null
+          call_status: string
+          called_by: string
+          client_name: string
+          client_phone: string
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          call_duration?: number | null
+          call_notes?: string | null
+          call_status?: string
+          called_by: string
+          client_name: string
+          client_phone: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          call_duration?: number | null
+          call_notes?: string | null
+          call_status?: string
+          called_by?: string
+          client_name?: string
+          client_phone?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_deposits: {
         Row: {
           amount: number
@@ -145,6 +181,45 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_targets: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_value: number
+          employee_id: string
+          id: string
+          month: string
+          status: string
+          target_type: string
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_value?: number
+          employee_id: string
+          id?: string
+          month: string
+          status?: string
+          target_type: string
+          target_value: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_value?: number
+          employee_id?: string
+          id?: string
+          month?: string
+          status?: string
+          target_type?: string
+          target_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -187,6 +262,36 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      team_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_group_message: boolean
+          is_read: boolean
+          message: string
+          recipient_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_group_message?: boolean
+          is_read?: boolean
+          message: string
+          recipient_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_group_message?: boolean
+          is_read?: boolean
+          message?: string
+          recipient_id?: string | null
+          sender_id?: string
         }
         Relationships: []
       }
