@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Plus,
   Search,
   MoreHorizontal,
   UserCircle,
@@ -38,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { AddClientDialog } from "@/components/clients/AddClientDialog";
 
 const clients = [
   {
@@ -159,10 +159,12 @@ export default function Clients() {
               إدارة العملاء المستثمرين ومتابعة استثماراتهم
             </p>
           </div>
-          <Button className="gradient-primary">
-            <Plus className="ml-2 h-4 w-4" />
-            إضافة عميل
-          </Button>
+          <AddClientDialog 
+            onClientAdded={(client) => {
+              console.log("تم إضافة عميل جديد:", client);
+              // هنا يمكن إضافة العميل للقائمة أو حفظه في قاعدة البيانات
+            }}
+          />
         </div>
 
         {/* Stats */}
