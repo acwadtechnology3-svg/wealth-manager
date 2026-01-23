@@ -9,10 +9,10 @@ import {
   MessageSquare,
   FileText,
   Settings,
-  Bell,
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import fisLogo from "@/assets/fis-logo.jpg";
@@ -30,6 +30,7 @@ const navItems: NavItem[] = [
   { title: "العملاء", href: "/clients", icon: UserCircle },
   { title: "العمولات", href: "/commissions", icon: Wallet },
   { title: "التقويم المالي", href: "/calendar", icon: Calendar },
+  { title: "الموارد البشرية", href: "/hr", icon: Briefcase },
   { title: "الشات", href: "/chat", icon: MessageSquare, badge: 3 },
   { title: "التقارير", href: "/reports", icon: FileText },
   { title: "الإعدادات", href: "/settings", icon: Settings },
