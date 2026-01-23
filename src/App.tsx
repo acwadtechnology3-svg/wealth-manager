@@ -30,6 +30,10 @@ import Documents from "./pages/hr/Documents";
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientProfile from "./pages/admin/ClientProfile";
+import UserManagement from "./pages/admin/UserManagement";
+import ClientCalls from "./pages/admin/ClientCalls";
+import EmployeeTargets from "./pages/admin/EmployeeTargets";
+import TeamChat from "./pages/admin/TeamChat";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +72,10 @@ const App = () => (
             {/* Admin Routes - Require Admin Access */}
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/client/:clientId" element={<ProtectedRoute requireAdmin><ClientProfile /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute requireAdmin><UserManagement /></ProtectedRoute>} />
+            <Route path="/admin/calls" element={<ProtectedRoute><ClientCalls /></ProtectedRoute>} />
+            <Route path="/admin/targets" element={<ProtectedRoute requireAdmin><EmployeeTargets /></ProtectedRoute>} />
+            <Route path="/admin/team-chat" element={<ProtectedRoute requireAdmin><TeamChat /></ProtectedRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
