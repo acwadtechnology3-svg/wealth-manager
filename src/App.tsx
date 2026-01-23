@@ -12,6 +12,14 @@ import Chat from "./pages/Chat";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+// HR Pages
+import HRDashboard from "./pages/hr/HRDashboard";
+import HREmployees from "./pages/hr/HREmployees";
+import Attendance from "./pages/hr/Attendance";
+import Leaves from "./pages/hr/Leaves";
+import Payroll from "./pages/hr/Payroll";
+import Penalties from "./pages/hr/Penalties";
+import Documents from "./pages/hr/Documents";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +38,14 @@ const App = () => (
           <Route path="/chat" element={<Chat />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
+          {/* HR Routes */}
+          <Route path="/hr" element={<HRDashboard />} />
+          <Route path="/hr/employees" element={<HREmployees />} />
+          <Route path="/hr/attendance" element={<Attendance />} />
+          <Route path="/hr/leaves" element={<Leaves />} />
+          <Route path="/hr/payroll" element={<Payroll />} />
+          <Route path="/hr/penalties" element={<Penalties />} />
+          <Route path="/hr/documents" element={<Documents />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
