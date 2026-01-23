@@ -20,6 +20,9 @@ import Leaves from "./pages/hr/Leaves";
 import Payroll from "./pages/hr/Payroll";
 import Penalties from "./pages/hr/Penalties";
 import Documents from "./pages/hr/Documents";
+// Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ClientProfile from "./pages/admin/ClientProfile";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +49,9 @@ const App = () => (
           <Route path="/hr/payroll" element={<Payroll />} />
           <Route path="/hr/penalties" element={<Penalties />} />
           <Route path="/hr/documents" element={<Documents />} />
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/client/:clientId" element={<ClientProfile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
