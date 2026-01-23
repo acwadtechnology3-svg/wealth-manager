@@ -3,6 +3,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+// Public Pages
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import Unauthorized from "./pages/Unauthorized";
+// Protected Pages
 import Index from "./pages/Index";
 import Employees from "./pages/Employees";
 import Clients from "./pages/Clients";
@@ -29,32 +36,43 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/employees" element={<Employees />} />
-          <Route path="/clients" element={<Clients />} />
-          <Route path="/commissions" element={<Commissions />} />
-          <Route path="/calendar" element={<FinancialCalendar />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
-          {/* HR Routes */}
-          <Route path="/hr" element={<HRDashboard />} />
-          <Route path="/hr/employees" element={<HREmployees />} />
-          <Route path="/hr/attendance" element={<Attendance />} />
-          <Route path="/hr/leaves" element={<Leaves />} />
-          <Route path="/hr/payroll" element={<Payroll />} />
-          <Route path="/hr/penalties" element={<Penalties />} />
-          <Route path="/hr/documents" element={<Documents />} />
-          {/* Admin Routes */}
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/client/:clientId" element={<ClientProfile />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Auth Routes */}
+            <Route path="/auth/login" element={<Login />} />
+            <Route path="/auth/register" element={<Register />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+            
+            {/* Protected Routes */}
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+            <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+            <Route path="/commissions" element={<ProtectedRoute><Commissions /></ProtectedRoute>} />
+            <Route path="/calendar" element={<ProtectedRoute><FinancialCalendar /></ProtectedRoute>} />
+            <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            
+            {/* HR Routes - Require HR Access */}
+            <Route path="/hr" element={<ProtectedRoute requireHR><HRDashboard /></ProtectedRoute>} />
+            <Route path="/hr/employees" element={<ProtectedRoute requireHR><HREmployees /></ProtectedRoute>} />
+            <Route path="/hr/attendance" element={<ProtectedRoute requireHR><Attendance /></ProtectedRoute>} />
+            <Route path="/hr/leaves" element={<ProtectedRoute requireHR><Leaves /></ProtectedRoute>} />
+            <Route path="/hr/payroll" element={<ProtectedRoute requireHR><Payroll /></ProtectedRoute>} />
+            <Route path="/hr/penalties" element={<ProtectedRoute requireHR><Penalties /></ProtectedRoute>} />
+            <Route path="/hr/documents" element={<ProtectedRoute requireHR><Documents /></ProtectedRoute>} />
+            
+            {/* Admin Routes - Require Admin Access */}
+            <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/client/:clientId" element={<ProtectedRoute requireAdmin><ClientProfile /></ProtectedRoute>} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
