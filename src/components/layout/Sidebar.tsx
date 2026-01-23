@@ -13,6 +13,7 @@ import {
   ChevronRight,
   LogOut,
   Briefcase,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import fisLogo from "@/assets/fis-logo.jpg";
@@ -26,6 +27,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: "لوحة التحكم", href: "/", icon: LayoutDashboard },
+  { title: "الأدمن", href: "/admin", icon: Shield },
   { title: "الموظفين", href: "/employees", icon: Users },
   { title: "العملاء", href: "/clients", icon: UserCircle },
   { title: "العمولات", href: "/commissions", icon: Wallet },
