@@ -14,16 +14,276 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          field_name: string | null
+          id: string
+          ip_address: string | null
+          new_value: string | null
+          old_value: string | null
+          reason: string | null
+          target_id: string | null
+          target_table: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          target_id?: string | null
+          target_table: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: string | null
+          old_value?: string | null
+          reason?: string | null
+          target_id?: string | null
+          target_table?: string
+        }
+        Relationships: []
+      }
+      client_deposits: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          created_by: string | null
+          deposit_date: string
+          deposit_number: string
+          id: string
+          profit_rate: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          deposit_date: string
+          deposit_number: string
+          id?: string
+          profit_rate?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          deposit_date?: string
+          deposit_number?: string
+          id?: string
+          profit_rate?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_deposits_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          assigned_to: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          national_id: string | null
+          phone: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          national_id?: string | null
+          phone: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          national_id?: string | null
+          phone?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          department: Database["public"]["Enums"]["department"]
+          email: string
+          employee_code: string | null
+          first_name: string
+          id: string
+          is_active: boolean
+          last_name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          department?: Database["public"]["Enums"]["department"]
+          email: string
+          employee_code?: string | null
+          first_name: string
+          id?: string
+          is_active?: boolean
+          last_name: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          department?: Database["public"]["Enums"]["department"]
+          email?: string
+          employee_code?: string | null
+          first_name?: string
+          id?: string
+          is_active?: boolean
+          last_name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      withdrawal_schedules: {
+        Row: {
+          amount: number
+          completed_date: string | null
+          created_at: string
+          deposit_id: string
+          due_date: string
+          id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          completed_date?: string | null
+          created_at?: string
+          deposit_id: string
+          due_date: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          completed_date?: string | null
+          created_at?: string
+          deposit_id?: string
+          due_date?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_schedules_deposit_id_fkey"
+            columns: ["deposit_id"]
+            isOneToOne: false
+            referencedRelation: "client_deposits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_client_code: { Args: never; Returns: string }
+      generate_employee_code: { Args: never; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin_or_higher: { Args: { _user_id: string }; Returns: boolean }
+      is_client_owner: {
+        Args: { _client_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_hr_or_higher: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "super_admin"
+        | "admin"
+        | "hr_manager"
+        | "hr_officer"
+        | "tele_sales"
+        | "accountant"
+        | "support"
+      department: "admin" | "hr" | "tele_sales" | "finance" | "support"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +410,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "super_admin",
+        "admin",
+        "hr_manager",
+        "hr_officer",
+        "tele_sales",
+        "accountant",
+        "support",
+      ],
+      department: ["admin", "hr", "tele_sales", "finance", "support"],
+    },
   },
 } as const
