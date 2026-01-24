@@ -27,6 +27,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import fisLogo from "@/assets/fis-logo.jpg";
 
 import { usePermissions } from "@/hooks/usePermissions";
+import { Badge } from "@/components/ui/badge";
 
 interface NavItem {
   title: string;
@@ -37,6 +38,26 @@ interface NavItem {
   requireHR?: boolean;
   requiredPermissions?: string[];
 }
+
+const roleLabels: Record<string, string> = {
+  super_admin: "سوبر أدمن",
+  admin: "أدمن",
+  hr_manager: "مدير HR",
+  hr_officer: "موظف HR",
+  tele_sales: "تيلي سيلز",
+  accountant: "محاسب",
+  support: "دعم فني",
+};
+
+const roleColors: Record<string, string> = {
+  super_admin: "bg-red-500 text-white",
+  admin: "bg-orange-500 text-white",
+  hr_manager: "bg-blue-500 text-white",
+  hr_officer: "bg-blue-400 text-white",
+  tele_sales: "bg-green-500 text-white",
+  accountant: "bg-purple-500 text-white",
+  support: "bg-gray-500 text-white",
+};
 
 // Main navigation items
 const mainNavItems: NavItem[] = [
@@ -70,7 +91,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, signOut, isAdmin, isHR } = useAuth();
+  const { profile, signOut, isAdmin, isHR, roles } = useAuth();
   const { hasAnyPermission } = usePermissions();
   const isMobile = useIsMobile();
   const prevPathRef = useRef(location.pathname);
@@ -241,16 +262,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground">
                 <UserCircle className="h-6 w-6" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-sidebar-foreground">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-sidebar-foreground truncate">
                   {profile ? `${profile.first_name} ${profile.last_name}` : "مستخدم"}
                 </p>
-                <p className="text-xs text-sidebar-foreground/70">
-                  {profile?.department === "admin" ? "الإدارة" : 
-                   profile?.department === "hr" ? "الموارد البشرية" :
-                   profile?.department === "tele_sales" ? "المبيعات" :
-                   profile?.department === "finance" ? "المالية" : "الدعم الفني"}
-                </p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {roles && roles.length > 0 ? (
+                    roles.slice(0, 2).map((role) => (
+                      <Badge 
+                        key={role} 
+                        className={cn("text-[10px] px-1.5 py-0", roleColors[role] || "bg-gray-500 text-white")}
+                      >
+                        {roleLabels[role] || role}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-xs text-sidebar-foreground/70">
+                      {profile?.department === "admin" ? "الإدارة" : 
+                       profile?.department === "hr" ? "الموارد البشرية" :
+                       profile?.department === "tele_sales" ? "المبيعات" :
+                       profile?.department === "finance" ? "المالية" : "الدعم الفني"}
+                    </span>
+                  )}
+                </div>
               </div>
               <button 
                 onClick={handleSignOut}
@@ -338,16 +372,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <UserCircle className="h-6 w-6" />
           </div>
           {!collapsed && (
-            <div className="flex-1 animate-fade-in">
-              <p className="text-sm font-semibold text-sidebar-foreground">
+            <div className="flex-1 animate-fade-in min-w-0">
+              <p className="text-sm font-semibold text-sidebar-foreground truncate">
                 {profile ? `${profile.first_name} ${profile.last_name}` : "مستخدم"}
               </p>
-              <p className="text-xs text-sidebar-foreground/70">
-                {profile?.department === "admin" ? "الإدارة" : 
-                 profile?.department === "hr" ? "الموارد البشرية" :
-                 profile?.department === "tele_sales" ? "المبيعات" :
-                 profile?.department === "finance" ? "المالية" : "الدعم الفني"}
-              </p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {roles && roles.length > 0 ? (
+                  roles.slice(0, 2).map((role) => (
+                    <Badge 
+                      key={role} 
+                      className={cn("text-[10px] px-1.5 py-0", roleColors[role] || "bg-gray-500 text-white")}
+                    >
+                      {roleLabels[role] || role}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-xs text-sidebar-foreground/70">
+                    {profile?.department === "admin" ? "الإدارة" : 
+                     profile?.department === "hr" ? "الموارد البشرية" :
+                     profile?.department === "tele_sales" ? "المبيعات" :
+                     profile?.department === "finance" ? "المالية" : "الدعم الفني"}
+                  </span>
+                )}
+              </div>
             </div>
           )}
           {!collapsed && (

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { UserPlus, Shield, Users, Search, Edit, Trash2, Key, Loader2, X } from "lucide-react";
+import { UserPlus, Shield, Users, Search, Edit, Trash2, Key, Loader2, X, User } from "lucide-react";
 
 type AppRole = "super_admin" | "admin" | "hr_manager" | "hr_officer" | "tele_sales" | "accountant" | "support";
 type Department = "admin" | "hr" | "tele_sales" | "finance" | "support";
@@ -288,18 +288,25 @@ const UserManagement = () => {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">إدارة المستخدمين</h1>
-            <p className="text-muted-foreground">إنشاء وإدارة حسابات الموظفين وصلاحياتهم</p>
-          </div>
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="ml-2 h-4 w-4" />
-                إضافة مستخدم
-              </Button>
-            </DialogTrigger>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 via-primary to-primary/80 p-6 text-primary-foreground shadow-xl animate-slide-right">
+          <div className="absolute inset-0 bg-grid-white/10" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                <Users className="h-7 w-7" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">إدارة المستخدمين</h1>
+                <p className="text-primary-foreground/80">إنشاء وإدارة حسابات الموظفين وصلاحياتهم</p>
+              </div>
+            </div>
+            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+              <DialogTrigger asChild>
+                <Button variant="secondary" className="shadow-lg">
+                  <UserPlus className="ml-2 h-4 w-4" />
+                  إضافة مستخدم
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>إضافة مستخدم جديد</DialogTitle>
@@ -398,43 +405,56 @@ const UserManagement = () => {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-slide-up">
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-card to-muted/30">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي المستخدمين</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                إجمالي المستخدمين
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-3xl font-bold text-primary">{users.length}</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-card to-muted/30">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">نشط</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                نشط
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-3xl font-bold text-green-600">
                 {users.filter((u) => u.profile?.is_active).length}
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-card to-muted/30">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">موقوف</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-red-500" />
+                موقوف
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">
+              <div className="text-3xl font-bold text-red-600">
                 {users.filter((u) => !u.profile?.is_active).length}
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-card to-muted/30">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">الأدمن</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                الأدمن
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="text-3xl font-bold text-orange-600">
                 {users.filter((u) => u.roles.includes("admin") || u.roles.includes("super_admin")).length}
               </div>
             </CardContent>
@@ -442,26 +462,27 @@ const UserManagement = () => {
         </div>
 
         {/* Search */}
-        <Card>
+        <Card className="shadow-lg border-0 animate-slide-up">
           <CardContent className="pt-6">
             <div className="relative">
-              <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute right-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input
                 placeholder="بحث بالاسم أو البريد أو الكود..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10"
+                className="pr-10 h-12 text-base"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Users Table */}
-        <Card>
-          <CardHeader>
+        <Card className="shadow-lg border-0 animate-slide-up">
+          <CardHeader className="bg-muted/30">
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+              <Users className="h-5 w-5 text-primary" />
               قائمة المستخدمين
+              <Badge variant="secondary" className="mr-2">{filteredUsers.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -483,28 +504,37 @@ const UserManagement = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
+                    <TableRow key={user.id} className="hover:bg-muted/50 transition-colors">
                       <TableCell>
-                        <div>
-                          <div className="font-medium">
-                            {user.profile?.first_name} {user.profile?.last_name}
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
+                            <User className="h-5 w-5" />
                           </div>
-                          {user.profile?.employee_code && (
-                            <div className="text-sm text-muted-foreground">{user.profile.employee_code}</div>
-                          )}
+                          <div>
+                            <div className="font-semibold">
+                              {user.profile?.first_name} {user.profile?.last_name}
+                            </div>
+                            {user.profile?.employee_code && (
+                              <div className="text-xs text-muted-foreground font-mono">{user.profile.employee_code}</div>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell dir="ltr" className="text-left">{user.email}</TableCell>
-                      <TableCell>{user.profile ? departmentLabels[user.profile.department] : "-"}</TableCell>
+                      <TableCell dir="ltr" className="text-left font-mono text-sm">{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-normal">
+                          {user.profile ? departmentLabels[user.profile.department] : "-"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {user.roles.length === 0 ? (
-                            <Badge variant="outline">بدون صلاحية</Badge>
+                            <Badge variant="outline" className="text-muted-foreground">بدون صلاحية</Badge>
                           ) : (
                             user.roles.map((role) => (
                               <Badge
                                 key={role}
-                                className={`${roleColors[role]} text-white cursor-pointer`}
+                                className={`${roleColors[role]} text-white cursor-pointer hover:opacity-80 transition-opacity`}
                                 onClick={() => isSuperAdmin() && handleRemoveRole(user.id, role)}
                               >
                                 {roleLabels[role]}
@@ -514,26 +544,33 @@ const UserManagement = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={user.profile?.is_active ? "default" : "destructive"}>
+                        <Badge 
+                          variant={user.profile?.is_active ? "default" : "destructive"}
+                          className="shadow-sm"
+                        >
                           {user.profile?.is_active ? "نشط" : "موقوف"}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="hover:bg-primary/10 hover:text-primary"
                             onClick={() => {
                               setSelectedUser(user);
                               setShowRoleDialog(true);
                             }}
+                            title="إدارة الصلاحيات"
                           >
                             <Shield className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            className={user.profile?.is_active ? "hover:bg-destructive/10 hover:text-destructive" : "hover:bg-green-500/10 hover:text-green-600"}
                             onClick={() => handleToggleActive(user.id, user.profile?.is_active ?? true)}
+                            title={user.profile?.is_active ? "إيقاف الحساب" : "تفعيل الحساب"}
                           >
                             <Key className="h-4 w-4" />
                           </Button>
