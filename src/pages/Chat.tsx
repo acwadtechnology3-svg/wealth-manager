@@ -13,17 +13,73 @@ const contacts = [
   { id: 3, name: "محمد علي", role: "تيلي سيلز", online: false, lastMessage: "سأرسل التقرير غداً", time: "أمس", unread: 0 },
   { id: 4, name: "نورا حسين", role: "محاسب", online: true, lastMessage: "تم تحويل العمولات", time: "أمس", unread: 1 },
   { id: 5, name: "الإدارة", role: "مجموعة", online: true, lastMessage: "اجتماع الساعة 2 ظهراً", time: "الإثنين", unread: 5 },
+  { id: 6, name: "أحمد فوزي", role: "مطور", online: false, lastMessage: "تم تحديث النظام", time: "الأحد", unread: 0 },
+  { id: 7, name: "فاطمة الزهراء", role: "HR", online: true, lastMessage: "تم اعتماد الإجازة", time: "السبت", unread: 3 },
+  { id: 8, name: "يوسف إبراهيم", role: "مدير عام", online: true, lastMessage: "أحسنتم جميعاً", time: "الجمعة", unread: 0 },
 ];
 
-const messages = [
-  { id: 1, sender: "سارة أحمد", content: "صباح الخير! هل تم مراجعة ملف العميل الجديد؟", time: "9:00 ص", isMe: false },
-  { id: 2, sender: "أنا", content: "صباح النور سارة. نعم، تم المراجعة وكل شيء سليم.", time: "9:05 ص", isMe: true },
-  { id: 3, sender: "سارة أحمد", content: "ممتاز! العميل مستثمر بمبلغ 200,000 جنيه بنسبة ربح 12%", time: "9:10 ص", isMe: false },
-  { id: 4, sender: "أنا", content: "تمام، سأضيفه للنظام الآن وأحدد موعد أول صرف أرباح", time: "9:15 ص", isMe: true },
-  { id: 5, sender: "سارة أحمد", content: "شكراً لك. أيضاً لدي عميل آخر محتمل سأرسل بياناته لاحقاً", time: "9:20 ص", isMe: false },
-  { id: 6, sender: "أنا", content: "تمام، أنا في الانتظار", time: "9:25 ص", isMe: true },
-  { id: 7, sender: "سارة أحمد", content: "تم إضافة العميل الجديد", time: "10:30 ص", isMe: false },
-];
+const messagesData: Record<number, Array<{ id: number; sender: string; content: string; time: string; isMe: boolean }>> = {
+  1: [
+    { id: 1, sender: "سارة أحمد", content: "صباح الخير! هل تم مراجعة ملف العميل الجديد؟", time: "9:00 ص", isMe: false },
+    { id: 2, sender: "أنا", content: "صباح النور سارة. نعم، تم المراجعة وكل شيء سليم.", time: "9:05 ص", isMe: true },
+    { id: 3, sender: "سارة أحمد", content: "ممتاز! العميل مستثمر بمبلغ 200,000 جنيه بنسبة ربح 12%", time: "9:10 ص", isMe: false },
+    { id: 4, sender: "أنا", content: "تمام، سأضيفه للنظام الآن وأحدد موعد أول صرف أرباح", time: "9:15 ص", isMe: true },
+    { id: 5, sender: "سارة أحمد", content: "شكراً لك. أيضاً لدي عميل آخر محتمل سأرسل بياناته لاحقاً", time: "9:20 ص", isMe: false },
+    { id: 6, sender: "أنا", content: "تمام، أنا في الانتظار", time: "9:25 ص", isMe: true },
+    { id: 7, sender: "سارة أحمد", content: "تم إضافة العميل الجديد", time: "10:30 ص", isMe: false },
+  ],
+  2: [
+    { id: 1, sender: "خالد محمود", content: "مرحباً، هل يمكنك مساعدتي في تسجيل عميل جديد؟", time: "8:30 ص", isMe: false },
+    { id: 2, sender: "أنا", content: "أهلاً خالد، بالتأكيد. ما هي بيانات العميل؟", time: "8:35 ص", isMe: true },
+    { id: 3, sender: "خالد محمود", content: "العميل اسمه محمد سعيد، رقم الهاتف 01012345678", time: "8:40 ص", isMe: false },
+    { id: 4, sender: "أنا", content: "تم تسجيله بنجاح. رقم الكود CLT00123", time: "8:50 ص", isMe: true },
+    { id: 5, sender: "خالد محمود", content: "شكراً على المتابعة", time: "9:45 ص", isMe: false },
+  ],
+  3: [
+    { id: 1, sender: "محمد علي", content: "السلام عليكم، أحتاج تقرير المبيعات الشهري", time: "3:00 م", isMe: false },
+    { id: 2, sender: "أنا", content: "وعليكم السلام، سأجهزه لك خلال ساعة", time: "3:05 م", isMe: true },
+    { id: 3, sender: "محمد علي", content: "ممتاز، شكراً لك", time: "3:10 م", isMe: false },
+    { id: 4, sender: "أنا", content: "تم إرسال التقرير على الإيميل", time: "4:00 م", isMe: true },
+    { id: 5, sender: "محمد علي", content: "سأرسل التقرير غداً", time: "5:00 م", isMe: false },
+  ],
+  4: [
+    { id: 1, sender: "نورا حسين", content: "مرحباً، العمولات جاهزة للتحويل", time: "11:00 ص", isMe: false },
+    { id: 2, sender: "أنا", content: "ممتاز نورا، كم إجمالي العمولات هذا الشهر؟", time: "11:05 ص", isMe: true },
+    { id: 3, sender: "نورا حسين", content: "إجمالي 45,000 جنيه لـ 12 موظف", time: "11:10 ص", isMe: false },
+    { id: 4, sender: "أنا", content: "تمام، أرسلي لي التفاصيل وسأوقع عليها", time: "11:15 ص", isMe: true },
+    { id: 5, sender: "نورا حسين", content: "تم تحويل العمولات", time: "2:00 م", isMe: false },
+  ],
+  5: [
+    { id: 1, sender: "يوسف إبراهيم", content: "تذكير: اجتماع فريق العمل الساعة 2 ظهراً", time: "10:00 ص", isMe: false },
+    { id: 2, sender: "سارة أحمد", content: "سأكون موجودة إن شاء الله", time: "10:05 ص", isMe: false },
+    { id: 3, sender: "أنا", content: "تمام، سأحضر المستندات المطلوبة", time: "10:10 ص", isMe: true },
+    { id: 4, sender: "خالد محمود", content: "هل يمكن تأجيله نصف ساعة؟", time: "10:15 ص", isMe: false },
+    { id: 5, sender: "يوسف إبراهيم", content: "لا مشكلة، الاجتماع الساعة 2:30", time: "10:20 ص", isMe: false },
+    { id: 6, sender: "نورا حسين", content: "اجتماع الساعة 2 ظهراً", time: "1:00 م", isMe: false },
+  ],
+  6: [
+    { id: 1, sender: "أحمد فوزي", content: "تم تحديث النظام بنجاح", time: "6:00 م", isMe: false },
+    { id: 2, sender: "أنا", content: "ممتاز أحمد، هل هناك أي تغييرات يجب أن نعرفها؟", time: "6:05 م", isMe: true },
+    { id: 3, sender: "أحمد فوزي", content: "نعم، تم إضافة ميزة التقارير التلقائية", time: "6:10 م", isMe: false },
+    { id: 4, sender: "أنا", content: "رائع! سأجربها غداً", time: "6:15 م", isMe: true },
+    { id: 5, sender: "أحمد فوزي", content: "تم تحديث النظام", time: "7:00 م", isMe: false },
+  ],
+  7: [
+    { id: 1, sender: "فاطمة الزهراء", content: "مرحباً، طلب الإجازة الخاص بك تم اعتماده", time: "9:00 ص", isMe: false },
+    { id: 2, sender: "أنا", content: "شكراً جزيلاً فاطمة", time: "9:05 ص", isMe: true },
+    { id: 3, sender: "فاطمة الزهراء", content: "الإجازة من يوم 15 إلى 20 من الشهر القادم", time: "9:10 ص", isMe: false },
+    { id: 4, sender: "أنا", content: "تمام، سأسلم المهام قبل الإجازة", time: "9:15 ص", isMe: true },
+    { id: 5, sender: "فاطمة الزهراء", content: "أيضاً لا تنسى ملء استمارة تقييم الأداء", time: "9:20 ص", isMe: false },
+    { id: 6, sender: "فاطمة الزهراء", content: "تم اعتماد الإجازة", time: "10:00 ص", isMe: false },
+  ],
+  8: [
+    { id: 1, sender: "يوسف إبراهيم", content: "أريد أن أشكر الجميع على الجهد المبذول هذا الشهر", time: "5:00 م", isMe: false },
+    { id: 2, sender: "أنا", content: "شكراً لك على الدعم المستمر", time: "5:05 م", isMe: true },
+    { id: 3, sender: "يوسف إبراهيم", content: "حققنا أهداف المبيعات بنسبة 120%", time: "5:10 م", isMe: false },
+    { id: 4, sender: "أنا", content: "هذا بفضل تعاون الفريق", time: "5:15 م", isMe: true },
+    { id: 5, sender: "يوسف إبراهيم", content: "أحسنتم جميعاً", time: "5:20 م", isMe: false },
+  ],
+};
 
 export default function Chat() {
   const [selectedContact, setSelectedContact] = useState(contacts[0]);
@@ -130,7 +186,7 @@ export default function Chat() {
           {/* Messages */}
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
-              {messages.map((msg) => (
+              {(messagesData[selectedContact.id] || []).map((msg) => (
                 <div
                   key={msg.id}
                   className={cn(
