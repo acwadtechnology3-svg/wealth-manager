@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -17,9 +17,12 @@ import {
   Phone,
   Target,
   UserCog,
+  Menu,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import fisLogo from "@/assets/fis-logo.jpg";
 
 interface NavItem {
@@ -48,11 +51,24 @@ const navItems: NavItem[] = [
   { title: "الإعدادات", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut, isAdmin, isHR } = useAuth();
+  const isMobile = useIsMobile();
+
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    if (isMobile && onClose) {
+      onClose();
+    }
+  }, [location.pathname, isMobile, onClose]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -65,6 +81,113 @@ export function Sidebar() {
     return true;
   });
 
+  // Mobile overlay sidebar
+  if (isMobile) {
+    return (
+      <>
+        {/* Overlay backdrop */}
+        {isOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity"
+            onClick={onClose}
+          />
+        )}
+
+        {/* Mobile sidebar */}
+        <aside
+          className={cn(
+            "fixed right-0 top-0 z-50 h-screen w-72 transition-transform duration-300 ease-in-out",
+            "bg-sidebar border-l border-sidebar-border",
+            isOpen ? "translate-x-0" : "translate-x-full"
+          )}
+        >
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute left-4 top-4 rounded-lg p-2 text-sidebar-foreground hover:bg-sidebar-accent"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          {/* Logo Section */}
+          <div className="flex h-20 items-center justify-center border-b border-sidebar-border px-4">
+            <Link to="/" className="flex items-center gap-3">
+              <img
+                src={fisLogo}
+                alt="FiS Logo"
+                className="h-12 w-12 rounded-lg"
+              />
+              <div>
+                <h1 className="text-lg font-bold text-sidebar-foreground">
+                  FiS Management
+                </h1>
+                <p className="text-xs text-sidebar-foreground/70">
+                  نظام إدارة الاستثمارات
+                </p>
+              </div>
+            </Link>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 space-y-1 p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+            {filteredNavItems.map((item) => {
+              const isActive = location.pathname === item.href || 
+                (item.href !== "/" && location.pathname.startsWith(item.href));
+              return (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all duration-200",
+                    "hover:bg-sidebar-accent group",
+                    isActive
+                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                      : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
+                  )}
+                >
+                  <item.icon className="h-5 w-5 shrink-0" />
+                  <span className="flex-1 text-sm font-medium">{item.title}</span>
+                  {item.badge && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* User Section */}
+          <div className="absolute bottom-0 left-0 right-0 border-t border-sidebar-border p-4 bg-sidebar">
+            <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground">
+                <UserCircle className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-sidebar-foreground">
+                  {profile ? `${profile.first_name} ${profile.last_name}` : "مستخدم"}
+                </p>
+                <p className="text-xs text-sidebar-foreground/70">
+                  {profile?.department === "admin" ? "الإدارة" : 
+                   profile?.department === "hr" ? "الموارد البشرية" :
+                   profile?.department === "tele_sales" ? "المبيعات" :
+                   profile?.department === "finance" ? "المالية" : "الدعم الفني"}
+                </p>
+              </div>
+              <button 
+                onClick={handleSignOut}
+                className="rounded-lg p-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </aside>
+      </>
+    );
+  }
+
+  // Desktop sidebar
   return (
     <aside
       className={cn(
@@ -184,5 +307,17 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+  );
+}
+
+// Mobile menu trigger button component
+export function MobileMenuTrigger({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="fixed right-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg md:hidden"
+    >
+      <Menu className="h-5 w-5" />
+    </button>
   );
 }
