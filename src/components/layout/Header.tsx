@@ -1,4 +1,4 @@
-import { Bell, Search, Settings, Moon, Sun } from "lucide-react";
+import { Bell, Search, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface HeaderProps {
   sidebarCollapsed?: boolean;
@@ -39,6 +40,11 @@ const notifications = [
 ];
 
 export function Header({ sidebarCollapsed }: HeaderProps) {
+  const isMobile = useIsMobile();
+
+  // Don't render on mobile
+  if (isMobile) return null;
+
   return (
     <header
       className={`fixed top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card/80 backdrop-blur-md transition-all duration-300 ${
