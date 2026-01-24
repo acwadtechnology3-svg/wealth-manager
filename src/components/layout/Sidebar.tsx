@@ -19,11 +19,14 @@ import {
   UserCog,
   Menu,
   X,
+  Key,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import fisLogo from "@/assets/fis-logo.jpg";
+
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface NavItem {
   title: string;
@@ -32,23 +35,25 @@ interface NavItem {
   badge?: number;
   requireAdmin?: boolean;
   requireHR?: boolean;
+  requiredPermissions?: string[];
 }
 
 const navItems: NavItem[] = [
-  { title: "لوحة التحكم", href: "/", icon: LayoutDashboard },
+  { title: "لوحة التحكم", href: "/", icon: LayoutDashboard, requiredPermissions: ["view_dashboard"] },
   { title: "الأدمن", href: "/admin", icon: Shield, requireAdmin: true },
   { title: "إدارة المستخدمين", href: "/admin/users", icon: UserCog, requireAdmin: true },
-  { title: "مكالمات العملاء", href: "/admin/calls", icon: Phone },
+  { title: "إدارة الصلاحيات", href: "/admin/permissions", icon: Key, requireAdmin: true },
+  { title: "مكالمات العملاء", href: "/admin/calls", icon: Phone, requiredPermissions: ["view_clients"] },
   { title: "تارجت الموظفين", href: "/admin/targets", icon: Target, requireAdmin: true },
   { title: "شات الفريق", href: "/admin/team-chat", icon: MessageSquare, requireAdmin: true },
-  { title: "الموظفين", href: "/employees", icon: Users },
-  { title: "العملاء", href: "/clients", icon: UserCircle },
-  { title: "العمولات", href: "/commissions", icon: Wallet },
-  { title: "التقويم المالي", href: "/calendar", icon: Calendar },
-  { title: "الموارد البشرية", href: "/hr", icon: Briefcase, requireHR: true },
-  { title: "الشات", href: "/chat", icon: MessageSquare, badge: 3 },
-  { title: "التقارير", href: "/reports", icon: FileText },
-  { title: "الإعدادات", href: "/settings", icon: Settings },
+  { title: "الموظفين", href: "/employees", icon: Users, requiredPermissions: ["view_employees"] },
+  { title: "العملاء", href: "/clients", icon: UserCircle, requiredPermissions: ["view_clients"] },
+  { title: "العمولات", href: "/commissions", icon: Wallet, requiredPermissions: ["view_commissions"] },
+  { title: "التقويم المالي", href: "/calendar", icon: Calendar, requiredPermissions: ["view_calendar"] },
+  { title: "الموارد البشرية", href: "/hr", icon: Briefcase, requireHR: true, requiredPermissions: ["view_hr"] },
+  { title: "الشات", href: "/chat", icon: MessageSquare, badge: 3, requiredPermissions: ["view_chat"] },
+  { title: "التقارير", href: "/reports", icon: FileText, requiredPermissions: ["view_reports"] },
+  { title: "الإعدادات", href: "/settings", icon: Settings, requiredPermissions: ["view_settings"] },
 ];
 
 interface SidebarProps {
@@ -61,6 +66,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, signOut, isAdmin, isHR } = useAuth();
+  const { hasAnyPermission } = usePermissions();
   const isMobile = useIsMobile();
   const prevPathRef = useRef(location.pathname);
 
@@ -78,8 +84,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const filteredNavItems = navItems.filter((item) => {
+    // Admin-only items
     if (item.requireAdmin && !isAdmin()) return false;
+    // HR-only items
     if (item.requireHR && !isHR()) return false;
+    // Permission-based items (admins bypass this check)
+    if (item.requiredPermissions && !isAdmin()) {
+      if (!hasAnyPermission(item.requiredPermissions)) return false;
+    }
     return true;
   });
 
