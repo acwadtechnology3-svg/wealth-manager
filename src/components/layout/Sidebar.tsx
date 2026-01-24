@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -62,12 +62,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const { profile, signOut, isAdmin, isHR } = useAuth();
   const isMobile = useIsMobile();
+  const prevPathRef = useRef(location.pathname);
 
-  // Close sidebar when route changes on mobile
+  // Close sidebar only when route actually changes on mobile
   useEffect(() => {
-    if (isMobile && onClose) {
+    if (isMobile && onClose && prevPathRef.current !== location.pathname) {
       onClose();
     }
+    prevPathRef.current = location.pathname;
   }, [location.pathname, isMobile, onClose]);
 
   const handleSignOut = async () => {
