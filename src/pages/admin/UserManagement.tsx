@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { UserPlus, Shield, Users, Search, Edit, Trash2, Key, Loader2 } from "lucide-react";
+import { UserPlus, Shield, Users, Search, Edit, Trash2, Key, Loader2, X } from "lucide-react";
 
 type AppRole = "super_admin" | "admin" | "hr_manager" | "hr_officer" | "tele_sales" | "accountant" | "support";
 type Department = "admin" | "hr" | "tele_sales" | "finance" | "support";
@@ -560,11 +560,25 @@ const UserManagement = () => {
               <div>
                 <Label>الصلاحيات الحالية</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedUser?.roles.map((role) => (
-                    <Badge key={role} className={`${roleColors[role]} text-white`}>
-                      {roleLabels[role]}
-                    </Badge>
-                  ))}
+                  {selectedUser?.roles.length === 0 ? (
+                    <span className="text-muted-foreground text-sm">لا توجد صلاحيات</span>
+                  ) : (
+                    selectedUser?.roles.map((role) => (
+                      <Badge 
+                        key={role} 
+                        className={`${roleColors[role]} text-white flex items-center gap-1`}
+                      >
+                        {roleLabels[role]}
+                        <button
+                          onClick={() => selectedUser && handleRemoveRole(selectedUser.id, role)}
+                          className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                          disabled={role === "super_admin" && !isSuperAdmin()}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))
+                  )}
                 </div>
               </div>
               <div>
