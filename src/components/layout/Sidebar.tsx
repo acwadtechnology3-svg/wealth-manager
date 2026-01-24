@@ -38,11 +38,9 @@ interface NavItem {
   requiredPermissions?: string[];
 }
 
-const navItems: NavItem[] = [
+// Main navigation items
+const mainNavItems: NavItem[] = [
   { title: "لوحة التحكم", href: "/", icon: LayoutDashboard, requiredPermissions: ["view_dashboard"] },
-  { title: "الأدمن", href: "/admin", icon: Shield, requireAdmin: true },
-  { title: "إدارة المستخدمين", href: "/admin/users", icon: UserCog, requireAdmin: true },
-  { title: "إدارة الصلاحيات", href: "/admin/permissions", icon: Key, requireAdmin: true },
   { title: "مكالمات العملاء", href: "/admin/calls", icon: Phone, requiredPermissions: ["view_clients"] },
   { title: "تارجت الموظفين", href: "/admin/targets", icon: Target, requireAdmin: true },
   { title: "شات الفريق", href: "/admin/team-chat", icon: MessageSquare, requireAdmin: true },
@@ -54,6 +52,13 @@ const navItems: NavItem[] = [
   { title: "الشات", href: "/chat", icon: MessageSquare, badge: 3, requiredPermissions: ["view_chat"] },
   { title: "التقارير", href: "/reports", icon: FileText, requiredPermissions: ["view_reports"] },
   { title: "الإعدادات", href: "/settings", icon: Settings, requiredPermissions: ["view_settings"] },
+];
+
+// Admin section items (shown at bottom)
+const adminNavItems: NavItem[] = [
+  { title: "الأدمن", href: "/admin", icon: Shield, requireAdmin: true },
+  { title: "إدارة المستخدمين", href: "/admin/users", icon: UserCog, requireAdmin: true },
+  { title: "إدارة الصلاحيات", href: "/admin/permissions", icon: Key, requireAdmin: true },
 ];
 
 interface SidebarProps {
@@ -83,7 +88,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     navigate("/auth/login");
   };
 
-  const filteredNavItems = navItems.filter((item) => {
+  const filterItems = (items: NavItem[]) => items.filter((item) => {
     // Admin-only items
     if (item.requireAdmin && !isAdmin()) return false;
     // HR-only items
@@ -94,6 +99,41 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
     return true;
   });
+
+  const filteredMainItems = filterItems(mainNavItems);
+  const filteredAdminItems = filterItems(adminNavItems);
+
+  const renderNavItem = (item: NavItem, collapsed: boolean = false) => {
+    const isActive = location.pathname === item.href;
+    return (
+      <Link
+        key={item.href}
+        to={item.href}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all duration-200",
+          "hover:bg-sidebar-accent group",
+          isActive
+            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+            : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
+        )}
+      >
+        <item.icon
+          className={cn(
+            "h-5 w-5 shrink-0 transition-transform duration-200",
+            "group-hover:scale-110"
+          )}
+        />
+        {!collapsed && (
+          <span className="flex-1 text-sm font-medium">{item.title}</span>
+        )}
+        {!collapsed && item.badge && (
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
+            {item.badge}
+          </span>
+        )}
+      </Link>
+    );
+  };
 
   // Mobile overlay sidebar
   if (isMobile) {
@@ -144,9 +184,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Navigation */}
           <nav className="flex-1 space-y-1 p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-            {filteredNavItems.map((item) => {
-              const isActive = location.pathname === item.href || 
-                (item.href !== "/" && location.pathname.startsWith(item.href));
+            {filteredMainItems.map((item) => {
+              const isActive = location.pathname === item.href;
               return (
                 <Link
                   key={item.href}
@@ -169,6 +208,31 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </Link>
               );
             })}
+            
+            {/* Admin Section */}
+            {filteredAdminItems.length > 0 && (
+              <div className="pt-4 mt-4 border-t border-sidebar-border">
+                {filteredAdminItems.map((item) => {
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all duration-200",
+                        "hover:bg-sidebar-accent group",
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
+                          : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      <span className="flex-1 text-sm font-medium">{item.title}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </nav>
 
           {/* User Section */}
@@ -236,38 +300,14 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
-        {filteredNavItems.map((item) => {
-          const isActive = location.pathname === item.href || 
-            (item.href !== "/" && location.pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-4 py-2.5 transition-all duration-200",
-                "hover:bg-sidebar-accent group",
-                isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md"
-                  : "text-sidebar-foreground/80 hover:text-sidebar-foreground"
-              )}
-            >
-              <item.icon
-                className={cn(
-                  "h-5 w-5 shrink-0 transition-transform duration-200",
-                  "group-hover:scale-110"
-                )}
-              />
-              {!collapsed && (
-                <span className="flex-1 text-sm font-medium">{item.title}</span>
-              )}
-              {!collapsed && item.badge && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                  {item.badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+        {filteredMainItems.map((item) => renderNavItem(item, collapsed))}
+        
+        {/* Admin Section */}
+        {filteredAdminItems.length > 0 && (
+          <div className="pt-4 mt-4 border-t border-sidebar-border">
+            {filteredAdminItems.map((item) => renderNavItem(item, collapsed))}
+          </div>
+        )}
       </nav>
 
       {/* Collapse Button */}
