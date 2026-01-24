@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { PermissionsProvider } from "@/hooks/usePermissions";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 // Public Pages
 import Login from "./pages/auth/Login";
@@ -31,6 +32,7 @@ import Documents from "./pages/hr/Documents";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ClientProfile from "./pages/admin/ClientProfile";
 import UserManagement from "./pages/admin/UserManagement";
+import PermissionManagement from "./pages/admin/PermissionManagement";
 import ClientCalls from "./pages/admin/ClientCalls";
 import EmployeeTargets from "./pages/admin/EmployeeTargets";
 import TeamChat from "./pages/admin/TeamChat";
@@ -41,6 +43,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
+        <PermissionsProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -73,6 +76,7 @@ const App = () => (
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/client/:clientId" element={<ProtectedRoute requireAdmin><ClientProfile /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute requireAdmin><UserManagement /></ProtectedRoute>} />
+            <Route path="/admin/permissions" element={<ProtectedRoute requireAdmin><PermissionManagement /></ProtectedRoute>} />
             <Route path="/admin/calls" element={<ProtectedRoute><ClientCalls /></ProtectedRoute>} />
             <Route path="/admin/targets" element={<ProtectedRoute requireAdmin><EmployeeTargets /></ProtectedRoute>} />
             <Route path="/admin/team-chat" element={<ProtectedRoute requireAdmin><TeamChat /></ProtectedRoute>} />
@@ -80,6 +84,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </PermissionsProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

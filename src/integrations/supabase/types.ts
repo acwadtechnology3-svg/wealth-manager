@@ -295,6 +295,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          category: Database["public"]["Enums"]["permission_category"]
+          created_at: string
+          granted_by: string | null
+          id: string
+          permission: string
+          user_id: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["permission_category"]
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission: string
+          user_id: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["permission_category"]
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -364,6 +391,17 @@ export type Database = {
     Functions: {
       generate_client_code: { Args: never; Returns: string }
       generate_employee_code: { Args: never; Returns: string }
+      has_category_access: {
+        Args: {
+          _category: Database["public"]["Enums"]["permission_category"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -389,6 +427,17 @@ export type Database = {
         | "accountant"
         | "support"
       department: "admin" | "hr" | "tele_sales" | "finance" | "support"
+      permission_category:
+        | "dashboard"
+        | "clients"
+        | "employees"
+        | "commissions"
+        | "calendar"
+        | "hr"
+        | "reports"
+        | "settings"
+        | "admin"
+        | "chat"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -526,6 +575,18 @@ export const Constants = {
         "support",
       ],
       department: ["admin", "hr", "tele_sales", "finance", "support"],
+      permission_category: [
+        "dashboard",
+        "clients",
+        "employees",
+        "commissions",
+        "calendar",
+        "hr",
+        "reports",
+        "settings",
+        "admin",
+        "chat",
+      ],
     },
   },
 } as const
