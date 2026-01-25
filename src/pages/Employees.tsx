@@ -79,6 +79,7 @@ export default function Employees() {
     email: "",
     password: "",
     phone: "",
+    salary: "",
     department: "support" as Department,
     role: "support" as AppRole,
   });
@@ -191,6 +192,7 @@ export default function Employees() {
           email: "",
           password: "",
           phone: "",
+          salary: "",
           department: "support",
           role: "support",
         });
@@ -395,8 +397,14 @@ export default function Employees() {
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="commission">نسبة العمولة (%)</Label>
-                  <Input id="commission" type="number" placeholder="5" />
+                  <Label htmlFor="salary">الراتب الأساسي (ج.م)</Label>
+                  <Input
+                    id="salary"
+                    type="number"
+                    placeholder="0"
+                    value={newEmployee.salary}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, salary: e.target.value })}
+                  />
                 </div>
               </div>
               <DialogFooter>
