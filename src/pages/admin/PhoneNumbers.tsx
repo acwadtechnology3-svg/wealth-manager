@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,11 +44,58 @@ export default function PhoneNumbers() {
   const [parsedData, setParsedData] = useState<ParsedPhoneData | null>(null);
   const [isParsing, setIsParsing] = useState(false);
   const [manualAssignments, setManualAssignments] = useState<Record<string, string>>({});
+  const [assignmentPool, setAssignmentPool] = useState<"tele_sales" | "all">("tele_sales");
+  const [assignmentStrategy, setAssignmentStrategy] = useState<"random" | "manual">("random");
 
   const { data: batches = [], isLoading } = usePhoneNumberBatches();
-  const { data: telesalesEmployees = [] } = useProfiles({ department: 'tele_sales', active: true });
+  const { data: employees = [] } = useProfiles({ active: true });
   const createBatch = useCreatePhoneNumberBatch();
   const deleteBatch = useDeletePhoneNumberBatch();
+
+  const teleSalesEmployees = useMemo(
+    () => employees.filter((employee) => employee.department === "tele_sales"),
+    [employees]
+  );
+
+  const assignmentEmployees = useMemo(() => {
+    const pool = assignmentPool === "tele_sales" ? teleSalesEmployees : employees;
+    return pool.filter((employee) => employee.user_id);
+  }, [assignmentPool, employees, teleSalesEmployees]);
+
+  const getEmployeeDisplayName = (employee: (typeof employees)[number]) => {
+    const name =
+      employee.full_name ||
+      [employee.first_name, employee.last_name].filter(Boolean).join(" ").trim() ||
+      employee.email;
+    return employee.employee_code ? `${name} (${employee.employee_code})` : name;
+  };
+
+  const normalizeName = (value: string) =>
+    value.toLowerCase().replace(/\s+/g, " ").trim();
+
+  useEffect(() => {
+    if (!parsedData || parsedData.assignmentMode !== "cold_calling") {
+      setManualAssignments({});
+      return;
+    }
+
+    if (assignmentStrategy !== "manual") {
+      setManualAssignments({});
+      return;
+    }
+
+    if (assignmentEmployees.length === 0) {
+      setManualAssignments({});
+      return;
+    }
+
+    const assignments: Record<string, string> = {};
+    parsedData.assignments.forEach((assignment, index) => {
+      const employeeIndex = index % assignmentEmployees.length;
+      assignments[assignment.employeeName] = assignmentEmployees[employeeIndex]?.user_id || "";
+    });
+    setManualAssignments(assignments);
+  }, [assignmentEmployees, assignmentStrategy, parsedData]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,17 +116,6 @@ export default function PhoneNumbers() {
     try {
       const parsed = await parseWordFile(file);
       setParsedData(parsed);
-
-      // Initialize manual assignments for cold calling
-      if (parsed.assignmentMode === 'cold_calling') {
-        const assignments: Record<string, string> = {};
-        parsed.assignments.forEach((assignment, index) => {
-          // Round-robin assignment by default
-          const employeeIndex = index % telesalesEmployees.length;
-          assignments[assignment.employeeName] = telesalesEmployees[employeeIndex]?.user_id || '';
-        });
-        setManualAssignments(assignments);
-      }
 
       toast({
         title: 'تم بنجاح',
@@ -106,47 +142,102 @@ export default function PhoneNumbers() {
         assigned_to: string;
         assigned_employee_name?: string;
       }> = [];
+      const availableEmployees = assignmentEmployees;
+      const findEmployeeForTarget = (targetName: string) => {
+        const normalizedTarget = normalizeName(targetName);
+        if (!normalizedTarget) return null;
 
-      for (const assignment of parsedData.assignments) {
-        let assignedTo: string;
+        return (
+          availableEmployees.find((employee) => {
+            const candidates = [
+              employee.full_name,
+              [employee.first_name, employee.last_name].filter(Boolean).join(" "),
+              employee.email,
+            ]
+              .filter(Boolean)
+              .map((name) => normalizeName(String(name)));
 
-        if (parsedData.assignmentMode === 'targeted') {
-          // Find employee by name
-          const employee = telesalesEmployees.find(
-            e => e.full_name?.includes(assignment.employeeName)
-          );
+            return candidates.some((candidate) => candidate.includes(normalizedTarget));
+          }) || null
+        );
+      };
 
-          if (!employee) {
-            toast({
-              title: 'خطأ',
-              description: `لم يتم العثور على الموظف: ${assignment.employeeName}`,
-              variant: 'destructive',
-            });
-            return;
-          }
-
-          assignedTo = employee.user_id!;
-        } else {
-          // Cold calling - use manual assignment
-          assignedTo = manualAssignments[assignment.employeeName];
-
-          if (!assignedTo) {
-            toast({
-              title: 'خطأ',
-              description: `يرجى تحديد موظف للمجموعة: ${assignment.employeeName}`,
-              variant: 'destructive',
-            });
-            return;
-          }
+      if (parsedData.assignmentMode === "cold_calling" && assignmentStrategy === "random") {
+        if (availableEmployees.length === 0) {
+          toast({
+            title: "Error",
+            description: "No active employees available for assignment.",
+            variant: "destructive",
+          });
+          return;
         }
 
-        assignment.phoneNumbers.forEach(phone => {
-          phoneNumbers.push({
-            phone_number: phone,
-            assigned_to: assignedTo,
-            assigned_employee_name: assignment.employeeName,
+        let pointer = Math.floor(Math.random() * availableEmployees.length);
+        const nextEmployee = () => {
+          const employee = availableEmployees[pointer % availableEmployees.length];
+          pointer += 1;
+          return employee;
+        };
+
+        parsedData.assignments.forEach((assignment) => {
+          assignment.phoneNumbers.forEach((phone) => {
+            const employee = nextEmployee();
+            if (!employee?.user_id) return;
+            phoneNumbers.push({
+              phone_number: phone,
+              assigned_to: employee.user_id,
+              assigned_employee_name: assignment.employeeName,
+            });
           });
         });
+      } else {
+        for (const assignment of parsedData.assignments) {
+          let assignedTo: string;
+
+          if (parsedData.assignmentMode === "targeted") {
+            if (availableEmployees.length === 0) {
+              toast({
+                title: "Error",
+                description: "No active employees available for assignment.",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            const employee = findEmployeeForTarget(assignment.employeeName);
+
+            if (!employee || !employee.user_id) {
+              toast({
+                title: "Error",
+                description: `Employee not found: ${assignment.employeeName}`,
+                variant: "destructive",
+              });
+              return;
+            }
+
+            assignedTo = employee.user_id;
+          } else {
+            // Cold calling - manual assignment
+            assignedTo = manualAssignments[assignment.employeeName];
+
+            if (!assignedTo) {
+              toast({
+                title: "Error",
+                description: `Please select an employee for group: ${assignment.employeeName}`,
+                variant: "destructive",
+              });
+              return;
+            }
+          }
+
+          assignment.phoneNumbers.forEach((phone) => {
+            phoneNumbers.push({
+              phone_number: phone,
+              assigned_to: assignedTo,
+              assigned_employee_name: assignment.employeeName,
+            });
+          });
+        }
       }
 
       await createBatch.mutateAsync({
@@ -202,6 +293,21 @@ export default function PhoneNumbers() {
                     disabled={isParsing}
                   />
                 </div>
+                <div className="grid gap-2">
+                  <Label>Assignment team</Label>
+                  <Select
+                    value={assignmentPool}
+                    onValueChange={(value) => setAssignmentPool(value as "tele_sales" | "all")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tele_sales">Tele sales only</SelectItem>
+                      <SelectItem value="all">All active employees</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 {isParsing && (
                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -224,38 +330,67 @@ export default function PhoneNumbers() {
                       </div>
                     </div>
 
-                    {parsedData.assignmentMode === 'cold_calling' && (
-                      <div className="space-y-3">
-                        <Label>تحديد الموظفين للمجموعات</Label>
-                        {parsedData.assignments.map((assignment, index) => (
-                          <div key={index} className="grid grid-cols-2 gap-2">
-                            <div className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">{assignment.employeeName}</span>
-                              <Badge variant="outline">{assignment.phoneNumbers.length} رقم</Badge>
-                            </div>
-                            <Select
-                              value={manualAssignments[assignment.employeeName]}
-                              onValueChange={(value) =>
-                                setManualAssignments(prev => ({
-                                  ...prev,
-                                  [assignment.employeeName]: value,
-                                }))
-                              }
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="اختر الموظف" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {telesalesEmployees.map(emp => (
-                                  <SelectItem key={emp.user_id} value={emp.user_id!}>
-                                    {emp.full_name} ({emp.employee_code})
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                                        {parsedData.assignmentMode === "cold_calling" && (
+                      <div className="space-y-4">
+                        <div className="grid gap-2">
+                          <Label>Distribution method</Label>
+                          <Select
+                            value={assignmentStrategy}
+                            onValueChange={(value) =>
+                              setAssignmentStrategy(value as "random" | "manual")
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="random">Random distribution</SelectItem>
+                              <SelectItem value="manual">Manual per group</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {assignmentStrategy === "manual" && (
+                          <div className="space-y-3">
+                            <Label>Group assignments</Label>
+                            {assignmentEmployees.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">
+                                No active employees found for the selected team.
+                              </p>
+                            ) : (
+                              parsedData.assignments.map((assignment, index) => (
+                                <div key={index} className="grid grid-cols-2 gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-sm">{assignment.employeeName}</span>
+                                    <Badge variant="outline">{assignment.phoneNumbers.length} numbers</Badge>
+                                  </div>
+                                  <Select
+                                    value={manualAssignments[assignment.employeeName]}
+                                    onValueChange={(value) =>
+                                      setManualAssignments((prev) => ({
+                                        ...prev,
+                                        [assignment.employeeName]: value,
+                                      }))
+                                    }
+                                    disabled={assignmentEmployees.length === 0}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select employee" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {assignmentEmployees.map((employee) => (
+                                        <SelectItem key={employee.user_id} value={employee.user_id!}>
+                                          {getEmployeeDisplayName(employee)}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              ))
+                            )}
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
                   </div>
@@ -348,3 +483,5 @@ export default function PhoneNumbers() {
     </MainLayout>
   );
 }
+
+

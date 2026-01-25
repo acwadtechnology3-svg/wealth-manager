@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          is_secret: boolean | null
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          is_secret?: boolean | null
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          is_secret?: boolean | null
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       attendance: {
         Row: {
           check_in: string | null
@@ -622,6 +649,33 @@ export type Database = {
           message?: string
           recipient_id?: string | null
           sender_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          appearance: Json
+          created_at: string
+          notifications: Json
+          security: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appearance?: Json
+          created_at?: string
+          notifications?: Json
+          security?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appearance?: Json
+          created_at?: string
+          notifications?: Json
+          security?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

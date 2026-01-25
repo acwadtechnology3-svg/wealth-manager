@@ -30,8 +30,8 @@ export async function parseWordFile(file: File): Promise<ParsedPhoneData> {
     const text = result.value;
 
     // Detect assignment mode
-    const isColdCalling = text.includes('Random Data');
-    const isTargeted = text.includes('Data From Page');
+    const isColdCalling = /Random Data/i.test(text);
+    const isTargeted = /Data Frome? Page/i.test(text);
 
     if (!isColdCalling && !isTargeted) {
       throw new Error('تنسيق الملف غير صحيح. يجب أن يحتوي على "Random Data" أو "Data From Page"');
@@ -49,7 +49,7 @@ export async function parseWordFile(file: File): Promise<ParsedPhoneData> {
     for (const line of lines) {
       // Check if line is a header with employee name
       const randomDataMatch = line.match(/Random Data\s*\((.+?)\)/i);
-      const targetedDataMatch = line.match(/Data From Page\s*\((.+?)\)/i);
+      const targetedDataMatch = line.match(/Data Frome? Page\s*\((.+?)\)/i);
 
       if (randomDataMatch || targetedDataMatch) {
         // Save previous employee's data

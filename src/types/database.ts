@@ -72,6 +72,16 @@ export type AuditLog = Tables<'audit_log'>;
 export type AuditLogInsert = TablesInsert<'audit_log'>;
 export type AuditLogUpdate = TablesUpdate<'audit_log'>;
 
+// App Settings
+export type AppSetting = Tables<'app_settings'>;
+export type AppSettingInsert = TablesInsert<'app_settings'>;
+export type AppSettingUpdate = TablesUpdate<'app_settings'>;
+
+// User Settings
+export type UserSettings = Tables<'user_settings'>;
+export type UserSettingsInsert = TablesInsert<'user_settings'>;
+export type UserSettingsUpdate = TablesUpdate<'user_settings'>;
+
 // Meetings
 export type Meeting = Tables<'meetings'>;
 export type MeetingInsert = TablesInsert<'meetings'>;
