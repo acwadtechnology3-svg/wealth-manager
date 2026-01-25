@@ -460,6 +460,33 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          created_at: string
+          details: Json
+          enabled: boolean
+          id: string
+          method: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          enabled?: boolean
+          id?: string
+          method: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          enabled?: boolean
+          id?: string
+          method?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payroll_records: {
         Row: {
           allowances: number
