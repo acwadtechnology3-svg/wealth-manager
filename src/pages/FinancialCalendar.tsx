@@ -6,11 +6,24 @@ import {
   ArrowDownCircle,
   Wallet,
   Filter,
+  Plus,
+  X,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -19,7 +32,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useWithdrawalsWithClients } from "@/hooks/queries/useWithdrawals";
+import { useWithdrawalsWithClients, useCreateWithdrawal } from "@/hooks/queries/useWithdrawals";
+import { useClientsWithDeposits } from "@/hooks/queries/useClients";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 type CalendarEvent = {
@@ -48,6 +62,17 @@ export default function FinancialCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Add Event Dialog State
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newEventType, setNewEventType] = useState<"withdraw" | "deposit">("withdraw");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventAmount, setNewEventAmount] = useState("");
+  const [selectedDepositId, setSelectedDepositId] = useState("");
+
+  // Fetch clients with deposits for the dialog
+  const { data: clients = [] } = useClientsWithDeposits();
+  const createWithdrawal = useCreateWithdrawal();
 
   // Calculate date range for the current month
   const monthStart = useMemo(() => {
@@ -116,6 +141,30 @@ export default function FinancialCalendar() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
   };
 
+  const handleAddEvent = async () => {
+    if (!selectedDepositId || !newEventDate || !newEventAmount) {
+      return;
+    }
+
+    try {
+      await createWithdrawal.mutateAsync({
+        deposit_id: selectedDepositId,
+        scheduled_date: newEventDate,
+        amount: parseFloat(newEventAmount),
+        status: 'upcoming',
+      });
+
+      // Reset form and close dialog
+      setIsAddDialogOpen(false);
+      setNewEventDate("");
+      setNewEventAmount("");
+      setSelectedDepositId("");
+      setNewEventType("withdraw");
+    } catch (error) {
+      // Error is handled by the mutation hook
+    }
+  };
+
   const monthNames = [
     "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
     "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
@@ -151,6 +200,83 @@ export default function FinancialCalendar() {
               متابعة مواعيد السحوبات (البيانات المتاحة: السحوبات فقط)
             </p>
           </div>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة تاريخ
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>إضافة موعد جديد</DialogTitle>
+                <DialogDescription>
+                  أضف موعد سحب جديد لعميل محدد
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="event-type">نوع العملية</Label>
+                  <Select value={newEventType} onValueChange={(v) => setNewEventType(v as "withdraw" | "deposit")}>
+                    <SelectTrigger id="event-type">
+                      <SelectValue placeholder="اختر النوع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="withdraw">سحب</SelectItem>
+                      <SelectItem value="deposit">إيداع</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="client-deposit">العميل / الإيداع</Label>
+                  <Select value={selectedDepositId} onValueChange={setSelectedDepositId}>
+                    <SelectTrigger id="client-deposit">
+                      <SelectValue placeholder="اختر العميل والإيداع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        client.client_deposits?.map((deposit) => (
+                          <SelectItem key={deposit.id} value={deposit.id}>
+                            {client.name} - {deposit.deposit_number} ({deposit.amount?.toLocaleString()} ج.م)
+                          </SelectItem>
+                        ))
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="event-date">التاريخ</Label>
+                  <Input
+                    id="event-date"
+                    type="date"
+                    value={newEventDate}
+                    onChange={(e) => setNewEventDate(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="event-amount">المبلغ</Label>
+                  <Input
+                    id="event-amount"
+                    type="number"
+                    placeholder="أدخل المبلغ"
+                    value={newEventAmount}
+                    onChange={(e) => setNewEventAmount(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  إلغاء
+                </Button>
+                <Button
+                  onClick={handleAddEvent}
+                  disabled={!selectedDepositId || !newEventDate || !newEventAmount || createWithdrawal.isPending}
+                >
+                  {createWithdrawal.isPending ? "جاري الحفظ..." : "حفظ"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Filters */}

@@ -75,6 +75,19 @@ export function useClientStats() {
 }
 
 /**
+ * Hook to fetch all clients with their deposits (for selection dialogs)
+ */
+export function useClientsWithDeposits() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: queryKeys.clients.listWithDeposits(),
+    queryFn: () => clientsApi.listWithDeposits(),
+    enabled: !!user,
+  });
+}
+
+/**
  * Hook to fetch clients by employee
  */
 export function useClientsByEmployee(employeeId: string | undefined) {

@@ -11,6 +11,7 @@ import {
   TrendingUp,
   AlertTriangle,
   Clock,
+  Calendar,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -96,6 +97,14 @@ export default function AdminDashboard() {
       href: "/admin/reports",
       color: "bg-secondary/10 text-secondary-foreground",
       stats: "تقارير",
+    },
+    {
+      title: "جداول العمل",
+      description: "إدارة جداول عمل الموظفين",
+      icon: Calendar,
+      href: "/admin/work-schedules",
+      color: "bg-primary/10 text-primary",
+      stats: "جداول",
     },
   ];
 

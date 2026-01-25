@@ -195,6 +195,28 @@ export const clientsApi = {
   },
 
   /**
+   * List all clients with their deposits (for selection dialogs)
+   */
+  async listWithDeposits(): Promise<ClientWithDeposits[]> {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select(`
+          *,
+          client_deposits (*)
+        `)
+        .eq('status', 'active')
+        .order('name', { ascending: true });
+
+      if (error) throw new ApiError(error);
+
+      return (data || []) as ClientWithDeposits[];
+    } catch (error) {
+      throw new ApiError(error);
+    }
+  },
+
+  /**
    * Get client statistics
    */
   async getStats(): Promise<{
