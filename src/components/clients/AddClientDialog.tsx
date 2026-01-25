@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -95,12 +96,11 @@ export function AddClientDialog() {
           assigned_to: data.employeeId,
           created_by: user.id,
           status: 'active',
-          registration_date: data.registrationDate,
         },
         deposit: {
           amount: data.investmentAmount,
           profitRate: data.profitRate,
-          depositDate: new Date().toISOString().split('T')[0],
+          depositDate: data.registrationDate,
           depositNumber: data.depositNumber,
         },
         investment: {
@@ -128,6 +128,9 @@ export function AddClientDialog() {
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">إضافة عميل جديد</DialogTitle>
+          <DialogDescription>
+            أدخل بيانات العميل والإيداع لفتح الحساب.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
