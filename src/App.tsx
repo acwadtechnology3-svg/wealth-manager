@@ -41,6 +41,7 @@ import EmployeeTargets from "./pages/admin/EmployeeTargets";
 import TeamChat from "./pages/admin/TeamChat";
 import WorkSchedules from "./pages/admin/WorkSchedules";
 import PhoneNumbers from "./pages/admin/PhoneNumbers";
+import PaymentMethods from "./pages/admin/PaymentMethods";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -87,6 +88,7 @@ const App = () => (
             <Route path="/admin/team-chat" element={<ProtectedRoute requireAdmin><TeamChat /></ProtectedRoute>} />
             <Route path="/admin/work-schedules" element={<ProtectedRoute requireAdmin><WorkSchedules /></ProtectedRoute>} />
             <Route path="/admin/phone-numbers" element={<ProtectedRoute requireAdmin><PhoneNumbers /></ProtectedRoute>} />
+            <Route path="/admin/payment-methods" element={<ProtectedRoute requireAdmin><PaymentMethods /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

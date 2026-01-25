@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   Key,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -80,6 +81,7 @@ const adminNavItems: NavItem[] = [
   { title: "الأدمن", href: "/admin", icon: Shield, requireAdmin: true },
   { title: "إدارة المستخدمين", href: "/admin/users", icon: UserCog, requireAdmin: true },
   { title: "إدارة الصلاحيات", href: "/admin/permissions", icon: Key, requireAdmin: true },
+  { title: "طرق الدفع", href: "/admin/payment-methods", icon: CreditCard, requireAdmin: true },
 ];
 
 interface SidebarProps {

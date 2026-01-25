@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Clock,
   Calendar,
+  CreditCard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -105,6 +106,14 @@ export default function AdminDashboard() {
       href: "/admin/work-schedules",
       color: "bg-primary/10 text-primary",
       stats: "جداول",
+    },
+    {
+      title: "طرق الدفع",
+      description: "إدارة طرق الدفع في الخدمات المدفوعة",
+      icon: CreditCard,
+      href: "/admin/payment-methods",
+      color: "bg-secondary/10 text-secondary-foreground",
+      stats: "طرق الدفع",
     },
   ];
 
