@@ -7,8 +7,8 @@ import { QueryClient } from '@tanstack/react-query';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes - data considered fresh
-      gcTime: 1000 * 60 * 30, // 30 minutes garbage collection (was cacheTime in v4)
+      staleTime: 1000 * 60 * 10, // 10 minutes - data considered fresh (increased for better caching)
+      gcTime: 1000 * 60 * 60, // 60 minutes garbage collection (increased for chat history)
       retry: (failureCount, error) => {
         // Don't retry on 4xx errors (client errors)
         if (error instanceof Error && 'status' in error) {
@@ -19,6 +19,7 @@ export const queryClient = new QueryClient({
       },
       refetchOnWindowFocus: false, // Disable for financial app stability
       refetchOnReconnect: true, // Refetch when connection is restored
+      networkMode: 'offlineFirst', // Serve from cache first for faster responses
     },
     mutations: {
       retry: false, // Don't retry mutations automatically to avoid duplicate operations

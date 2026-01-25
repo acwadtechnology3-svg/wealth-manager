@@ -31,14 +31,53 @@ export function useMessages(filters?: {
 }
 
 /**
- * Hook to fetch conversation between two users
+ * Hook to fetch conversation between two users with realtime updates and aggressive caching
  */
 export function useConversation(userId1: string | undefined, userId2: string | undefined, limit?: number) {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: queryKeys.messages.conversation(userId1!, userId2!),
     queryFn: () => messagesApi.getConversation(userId1!, userId2!, limit),
     enabled: !!userId1 && !!userId2,
+    staleTime: 1000 * 60 * 30, // 30 minutes - keep conversation cached longer
+    gcTime: 1000 * 60 * 60 * 2, // 2 hours - keep in memory for quick access
+    refetchOnMount: false, // Don't refetch if data is fresh
+    refetchOnReconnect: true, // Refetch when connection restored
   });
+
+  // Subscribe to realtime updates for this conversation
+  useEffect(() => {
+    if (!userId1 || !userId2) return;
+
+    const channel = messagesApi.subscribeToMessages(
+      (newMessage) => {
+        // Only update if message is part of this conversation
+        if (
+          (newMessage.sender_id === userId1 && newMessage.recipient_id === userId2) ||
+          (newMessage.sender_id === userId2 && newMessage.recipient_id === userId1)
+        ) {
+          // Optimistically add message to cache
+          queryClient.setQueryData<TeamMessageWithProfile[]>(
+            queryKeys.messages.conversation(userId1, userId2),
+            (old) => {
+              if (!old) return old;
+              // Check if message already exists to avoid duplicates
+              if (old.some(msg => msg.id === newMessage.id)) return old;
+              return [...old, newMessage as TeamMessageWithProfile];
+            }
+          );
+        }
+      },
+      { userId: userId1 }
+    );
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [userId1, userId2, queryClient]);
+
+  return query;
 }
 
 /**
@@ -145,49 +184,88 @@ export function useUnreadCount(userId: string | undefined) {
 }
 
 /**
- * Mutation hook to send a message
+ * Mutation hook to send a message with optimistic updates
  */
 export function useSendMessage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: (message: TeamMessageInsert) => messagesApi.send(message),
 
-    // Optimistic update
+    // Optimistic update for instant UI feedback
     onMutate: async (newMessage) => {
+      const isGroupMessage = newMessage.recipient_id === null;
+
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.messages.lists() });
 
-      // Snapshot previous value
+      // For direct messages, also cancel conversation queries
+      if (!isGroupMessage && newMessage.sender_id && newMessage.recipient_id) {
+        await queryClient.cancelQueries({
+          queryKey: queryKeys.messages.conversation(newMessage.sender_id, newMessage.recipient_id)
+        });
+      }
+
+      // Snapshot previous values
       const previousMessages = queryClient.getQueryData<TeamMessageWithProfile[]>(
-        queryKeys.messages.list({ isGroupMessage: newMessage.recipient_id === null })
+        queryKeys.messages.list({ isGroupMessage })
       );
 
-      // Optimistically update cache
-      if (previousMessages) {
-        const optimisticMessage: Partial<TeamMessageWithProfile> = {
-          ...newMessage,
-          id: `temp-${Date.now()}`,
-          created_at: new Date().toISOString(),
-          is_read: false,
-        };
+      const previousConversation = !isGroupMessage && newMessage.sender_id && newMessage.recipient_id
+        ? queryClient.getQueryData<TeamMessageWithProfile[]>(
+          queryKeys.messages.conversation(newMessage.sender_id, newMessage.recipient_id)
+        )
+        : null;
 
+      // Create optimistic message with temporary ID
+      const optimisticMessage: TeamMessageWithProfile = {
+        ...newMessage,
+        id: `temp-${Date.now()}-${Math.random()}`,
+        created_at: new Date().toISOString(),
+        is_read: false,
+        profiles: user ? {
+          full_name: user.user_metadata?.full_name || null,
+          email: user.email || '',
+          avatar_url: user.user_metadata?.avatar_url || null,
+        } : undefined,
+      } as TeamMessageWithProfile;
+
+      // Optimistically update messages list cache
+      if (previousMessages) {
         queryClient.setQueryData(
-          queryKeys.messages.list({ isGroupMessage: newMessage.recipient_id === null }),
-          [...previousMessages, optimisticMessage as TeamMessageWithProfile]
+          queryKeys.messages.list({ isGroupMessage }),
+          [...previousMessages, optimisticMessage]
         );
       }
 
-      return { previousMessages };
+      // Optimistically update conversation cache for instant feedback
+      if (previousConversation && !isGroupMessage && newMessage.sender_id && newMessage.recipient_id) {
+        queryClient.setQueryData(
+          queryKeys.messages.conversation(newMessage.sender_id, newMessage.recipient_id),
+          [...previousConversation, optimisticMessage]
+        );
+      }
+
+      return { previousMessages, previousConversation, newMessage };
     },
 
     onError: (error, newMessage, context) => {
+      const isGroupMessage = newMessage.recipient_id === null;
+
       // Rollback on error
       if (context?.previousMessages) {
         queryClient.setQueryData(
-          queryKeys.messages.list({ isGroupMessage: newMessage.recipient_id === null }),
+          queryKeys.messages.list({ isGroupMessage }),
           context.previousMessages
+        );
+      }
+
+      if (context?.previousConversation && newMessage.sender_id && newMessage.recipient_id) {
+        queryClient.setQueryData(
+          queryKeys.messages.conversation(newMessage.sender_id, newMessage.recipient_id),
+          context.previousConversation
         );
       }
 
@@ -198,8 +276,24 @@ export function useSendMessage() {
       });
     },
 
+    onSuccess: (data, newMessage) => {
+      // Replace optimistic message with real one
+      const isGroupMessage = newMessage.recipient_id === null;
+
+      if (!isGroupMessage && newMessage.sender_id && newMessage.recipient_id) {
+        queryClient.setQueryData<TeamMessageWithProfile[]>(
+          queryKeys.messages.conversation(newMessage.sender_id, newMessage.recipient_id),
+          (old) => {
+            if (!old) return [data as TeamMessageWithProfile];
+            // Remove temp message and add real one
+            return [...old.filter(msg => !msg.id.toString().startsWith('temp-')), data as TeamMessageWithProfile];
+          }
+        );
+      }
+    },
+
     onSettled: () => {
-      // Always refetch after error or success
+      // Refetch in background to ensure consistency
       queryClient.invalidateQueries({ queryKey: queryKeys.messages.lists() });
     },
   });
