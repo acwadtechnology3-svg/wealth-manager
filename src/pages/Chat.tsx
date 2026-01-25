@@ -23,13 +23,13 @@ export default function Chat() {
 
   // Filter out current user from employees list
   const contacts = useMemo(() => {
-    return employees.filter(emp => emp.id !== user?.id);
+    return employees.filter(emp => emp.user_id !== user?.id);
   }, [employees, user?.id]);
 
   // Auto-select first contact
   useEffect(() => {
     if (contacts.length > 0 && !selectedContactId) {
-      setSelectedContactId(contacts[0].id);
+      setSelectedContactId(contacts[0].user_id!);
     }
   }, [contacts, selectedContactId]);
 
@@ -44,7 +44,7 @@ export default function Chat() {
   const sendMessageMutation = useSendMessage();
 
   // Selected contact info
-  const selectedContact = contacts.find(c => c.id === selectedContactId);
+  const selectedContact = contacts.find(c => c.user_id === selectedContactId);
 
   // Filter contacts based on search
   const filteredContacts = useMemo(() => {
@@ -155,12 +155,12 @@ export default function Chat() {
 
               return (
                 <button
-                  key={contact.id}
-                  onClick={() => setSelectedContactId(contact.id)}
+                  key={contact.user_id}
+                  onClick={() => setSelectedContactId(contact.user_id!)}
                   className={cn(
                     "w-full flex items-center gap-3 p-4 border-b transition-colors text-right",
                     "hover:bg-muted/50",
-                    selectedContactId === contact.id && "bg-muted"
+                    selectedContactId === contact.user_id && "bg-muted"
                   )}
                 >
                   <div className="relative">

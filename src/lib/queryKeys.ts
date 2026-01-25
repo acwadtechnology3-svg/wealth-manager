@@ -139,4 +139,31 @@ export const queryKeys = {
     recentClients: () => [...queryKeys.dashboard.all, 'recent-clients'] as const,
     upcomingEvents: () => [...queryKeys.dashboard.all, 'upcoming-events'] as const,
   },
+
+  // Meetings
+  meetings: {
+    all: ['meetings'] as const,
+    lists: () => [...queryKeys.meetings.all, 'list'] as const,
+    list: (filters?: { startDate?: string; endDate?: string; responsibleEmployeeId?: string }) =>
+      [...queryKeys.meetings.lists(), filters ?? {}] as const,
+    detail: (id: string) => [...queryKeys.meetings.all, 'detail', id] as const,
+  },
+
+  // Marketing Posters
+  posters: {
+    all: ['posters'] as const,
+    lists: () => [...queryKeys.posters.all, 'list'] as const,
+    list: (filters?: { startDate?: string; endDate?: string }) =>
+      [...queryKeys.posters.lists(), filters ?? {}] as const,
+    detail: (id: string) => [...queryKeys.posters.all, 'detail', id] as const,
+  },
+
+  // Phone Numbers
+  phoneNumbers: {
+    all: ['phone-numbers'] as const,
+    batches: () => [...queryKeys.phoneNumbers.all, 'batches'] as const,
+    byBatch: (batchId: string) => [...queryKeys.phoneNumbers.all, 'batch', batchId] as const,
+    byEmployee: (employeeId: string) => [...queryKeys.phoneNumbers.all, 'employee', employeeId] as const,
+    stats: (employeeId?: string) => [...queryKeys.phoneNumbers.all, 'stats', employeeId ?? 'all'] as const,
+  },
 } as const;

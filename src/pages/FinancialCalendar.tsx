@@ -8,6 +8,8 @@ import {
   Filter,
   Plus,
   X,
+  Users,
+  Image,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
@@ -34,20 +36,27 @@ import {
 import { cn } from "@/lib/utils";
 import { useWithdrawalsWithClients, useCreateWithdrawal } from "@/hooks/queries/useWithdrawals";
 import { useClientsWithDeposits } from "@/hooks/queries/useClients";
+import { useMeetings } from "@/hooks/queries/useMeetings";
+import { usePosters } from "@/hooks/queries/usePosters";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 type CalendarEvent = {
   date: string;
-  type: "withdraw" | "profit" | "deposit";
-  client: string;
-  amount: number;
-  status: "done" | "upcoming" | "late";
+  type: "withdraw" | "profit" | "deposit" | "meeting" | "poster";
+  client?: string;
+  amount?: number;
+  status?: "done" | "upcoming" | "late";
+  title?: string; // For meetings and posters
+  description?: string; // For meetings
+  responsibleEmployee?: string; // For meetings
 };
 
 const eventConfig = {
   withdraw: { icon: ArrowUpCircle, label: "سحب", color: "bg-destructive/10 text-destructive border-destructive/20" },
   profit: { icon: Wallet, label: "أرباح", color: "bg-success/10 text-success border-success/20" },
   deposit: { icon: ArrowDownCircle, label: "إيداع", color: "bg-secondary/10 text-secondary border-secondary/20" },
+  meeting: { icon: Users, label: "اجتماع", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  poster: { icon: Image, label: "ملصق", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
 };
 
 const statusConfig = {
@@ -89,9 +98,21 @@ export default function FinancialCalendar() {
     endDate: monthEnd,
   });
 
+  // Fetch meetings for the current month
+  const { data: meetings = [] } = useMeetings({
+    startDate: monthStart,
+    endDate: monthEnd,
+  });
+
+  // Fetch posters for the current month
+  const { data: posters = [] } = usePosters({
+    startDate: monthStart,
+    endDate: monthEnd,
+  });
+
   // Map withdrawals to calendar events
   const events = useMemo((): CalendarEvent[] => {
-    return withdrawals.map((withdrawal) => {
+    const withdrawalEvents = withdrawals.map((withdrawal) => {
       const clientName = withdrawal.client_deposits?.clients?.name || "عميل غير معروف";
 
       // Map withdrawal status to calendar status
@@ -110,7 +131,25 @@ export default function FinancialCalendar() {
         status: eventStatus,
       };
     });
-  }, [withdrawals]);
+
+    const meetingEvents = meetings.map((meeting) => ({
+      date: meeting.meeting_date,
+      type: "meeting" as const,
+      title: meeting.title,
+      description: meeting.description || undefined,
+      responsibleEmployee: meeting.responsible_employee?.full_name || "غير محدد",
+      status: "upcoming" as const,
+    }));
+
+    const posterEvents = posters.map((poster) => ({
+      date: poster.poster_date,
+      type: "poster" as const,
+      title: poster.title,
+      status: "upcoming" as const,
+    }));
+
+    return [...withdrawalEvents, ...meetingEvents, ...posterEvents];
+  }, [withdrawals, meetings, posters]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();

@@ -72,6 +72,26 @@ export type AuditLog = Tables<'audit_log'>;
 export type AuditLogInsert = TablesInsert<'audit_log'>;
 export type AuditLogUpdate = TablesUpdate<'audit_log'>;
 
+// Meetings
+export type Meeting = Tables<'meetings'>;
+export type MeetingInsert = TablesInsert<'meetings'>;
+export type MeetingUpdate = TablesUpdate<'meetings'>;
+
+// Marketing Posters
+export type MarketingPoster = Tables<'marketing_posters'>;
+export type MarketingPosterInsert = TablesInsert<'marketing_posters'>;
+export type MarketingPosterUpdate = TablesUpdate<'marketing_posters'>;
+
+// Phone Number Batches
+export type PhoneNumberBatch = Tables<'phone_number_batches'>;
+export type PhoneNumberBatchInsert = TablesInsert<'phone_number_batches'>;
+export type PhoneNumberBatchUpdate = TablesUpdate<'phone_number_batches'>;
+
+// Phone Numbers
+export type PhoneNumber = Tables<'phone_numbers'>;
+export type PhoneNumberInsert = TablesInsert<'phone_numbers'>;
+export type PhoneNumberUpdate = TablesUpdate<'phone_numbers'>;
+
 // ============================================================================
 // Enum Types
 // ============================================================================
@@ -133,6 +153,36 @@ export type EmployeeTargetWithProfile = EmployeeTarget & {
 export type TeamMessageWithProfiles = TeamMessage & {
   sender: Profile;
   recipient?: Profile;
+};
+
+/**
+ * Meeting with profile information
+ */
+export type MeetingWithProfile = Meeting & {
+  responsible_employee?: Profile;
+  creator?: Profile;
+};
+
+/**
+ * Marketing poster with uploader profile
+ */
+export type MarketingPosterWithProfile = MarketingPoster & {
+  uploader?: Profile;
+};
+
+/**
+ * Phone number batch with details
+ */
+export type PhoneNumberBatchWithDetails = PhoneNumberBatch & {
+  uploader?: Profile;
+  phone_numbers?: PhoneNumber[];
+};
+
+/**
+ * Phone number with assignee profile
+ */
+export type PhoneNumberWithAssignee = PhoneNumber & {
+  assignee?: Profile;
 };
 
 // ============================================================================
