@@ -33,8 +33,8 @@ import { useAuth } from "@/hooks/useAuth";
 
 const clientSchema = z.object({
   name: z.string().trim().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(100),
-  email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
   phone: z.string().trim().min(10, "رقم الهاتف غير صحيح").max(15),
+  registrationDate: z.string().min(1, "تاريخ التسجيل مطلوب"),
   depositNumber: z.string().trim().optional(),
   investmentAmount: z.coerce.number().min(1000, "الحد الأدنى للإيداع 1000 ج.م"),
   profitRate: z.coerce.number().min(1, "نسبة الربح يجب أن تكون 1% على الأقل").max(50),
@@ -55,8 +55,8 @@ export function AddClientDialog() {
     resolver: zodResolver(clientSchema),
     defaultValues: {
       name: "",
-      email: "",
       phone: "",
+      registrationDate: new Date().toISOString().split('T')[0],
       depositNumber: "",
       investmentAmount: 0,
       profitRate: 10,
@@ -67,15 +67,15 @@ export function AddClientDialog() {
   });
 
   const watchedValues = form.watch();
-  
+
   // حساب الأرباح التلقائي
   const calculations = useMemo(() => {
     const { investmentAmount, profitRate, investmentDuration, commissionRate } = watchedValues;
-    
+
     const monthlyProfit = (investmentAmount * profitRate) / 100;
     const totalProfit = monthlyProfit * investmentDuration;
     const employeeCommission = (investmentAmount * commissionRate) / 100;
-    
+
     return {
       monthlyProfit: isNaN(monthlyProfit) ? 0 : monthlyProfit,
       totalProfit: isNaN(totalProfit) ? 0 : totalProfit,
@@ -90,11 +90,12 @@ export function AddClientDialog() {
       {
         client: {
           name: data.name,
-          email: data.email || null,
+          email: null,
           phone: data.phone,
           assigned_to: data.employeeId,
           created_by: user.id,
           status: 'active',
+          registration_date: data.registrationDate,
         },
         deposit: {
           amount: data.investmentAmount,
@@ -128,7 +129,7 @@ export function AddClientDialog() {
         <DialogHeader>
           <DialogTitle className="text-xl">إضافة عميل جديد</DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* بيانات العميل الأساسية */}
@@ -164,12 +165,12 @@ export function AddClientDialog() {
               </div>
               <FormField
                 control={form.control}
-                name="email"
+                name="registrationDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>البريد الإلكتروني (اختياري)</FormLabel>
+                    <FormLabel>تاريخ التسجيل *</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="example@email.com" {...field} />
+                      <Input type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
