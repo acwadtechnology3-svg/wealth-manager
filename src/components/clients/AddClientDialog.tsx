@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,10 +27,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Plus, Calculator, TrendingUp, DollarSign } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useCreateClientWithDeposit } from "@/hooks/queries/useClients";
+import { useEmployees } from "@/hooks/queries/useProfiles";
+import { useAuth } from "@/hooks/useAuth";
 
 const clientSchema = z.object({
   name: z.string().trim().min(2, "الاسم يجب أن يكون حرفين على الأقل").max(100),
+  email: z.string().email("البريد الإلكتروني غير صحيح").optional().or(z.literal("")),
   phone: z.string().trim().min(10, "رقم الهاتف غير صحيح").max(15),
   depositNumber: z.string().trim().optional(),
   investmentAmount: z.coerce.number().min(1000, "الحد الأدنى للإيداع 1000 ج.م"),
@@ -43,29 +45,17 @@ const clientSchema = z.object({
 
 type ClientFormData = z.infer<typeof clientSchema>;
 
-// بيانات تجريبية للموظفين
-const employees = [
-  { id: "E001", name: "سارة أحمد" },
-  { id: "E002", name: "خالد محمود" },
-  { id: "E003", name: "محمد علي" },
-  { id: "E004", name: "نورا حسين" },
-];
-
-interface AddClientDialogProps {
-  onClientAdded?: (client: ClientFormData & { 
-    expectedProfit: number; 
-    totalProfit: number; 
-    employeeCommission: number;
-  }) => void;
-}
-
-export function AddClientDialog({ onClientAdded }: AddClientDialogProps) {
+export function AddClientDialog() {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const createClientMutation = useCreateClientWithDeposit();
+  const { data: employees = [], isLoading: isLoadingEmployees } = useEmployees();
 
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
       name: "",
+      email: "",
       phone: "",
       depositNumber: "",
       investmentAmount: 0,
@@ -94,22 +84,36 @@ export function AddClientDialog({ onClientAdded }: AddClientDialogProps) {
   }, [watchedValues]);
 
   const onSubmit = (data: ClientFormData) => {
-    const clientData = {
-      ...data,
-      expectedProfit: calculations.monthlyProfit,
-      totalProfit: calculations.totalProfit,
-      employeeCommission: calculations.employeeCommission,
-    };
+    if (!user) return;
 
-    onClientAdded?.(clientData);
-    
-    toast({
-      title: "تم إضافة العميل بنجاح",
-      description: `تم تسجيل العميل ${data.name} وربطه بالموظف المسؤول`,
-    });
-    
-    form.reset();
-    setOpen(false);
+    createClientMutation.mutate(
+      {
+        client: {
+          name: data.name,
+          email: data.email || null,
+          phone: data.phone,
+          assigned_to: data.employeeId,
+          created_by: user.id,
+          status: 'active',
+        },
+        deposit: {
+          amount: data.investmentAmount,
+          profitRate: data.profitRate,
+          depositDate: new Date().toISOString().split('T')[0],
+          depositNumber: data.depositNumber,
+        },
+        investment: {
+          duration: data.investmentDuration,
+          commissionRate: data.commissionRate,
+        },
+      },
+      {
+        onSuccess: () => {
+          form.reset();
+          setOpen(false);
+        },
+      }
+    );
   };
 
   return (
@@ -158,6 +162,19 @@ export function AddClientDialog({ onClientAdded }: AddClientDialogProps) {
                   )}
                 />
               </div>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>البريد الإلكتروني (اختياري)</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="example@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="depositNumber"
@@ -229,16 +246,20 @@ export function AddClientDialog({ onClientAdded }: AddClientDialogProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>الموظف المسؤول *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isLoadingEmployees}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="اختر الموظف" />
+                            <SelectValue placeholder={isLoadingEmployees ? "جاري التحميل..." : "اختر الموظف"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {employees.map((emp) => (
-                            <SelectItem key={emp.id} value={emp.id}>
-                              {emp.name}
+                            <SelectItem key={emp.user_id} value={emp.user_id!}>
+                              {emp.full_name || emp.email}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -302,14 +323,19 @@ export function AddClientDialog({ onClientAdded }: AddClientDialogProps) {
 
             {/* أزرار الإجراءات */}
             <div className="flex gap-3 pt-4">
-              <Button type="submit" className="flex-1 gradient-primary">
+              <Button
+                type="submit"
+                className="flex-1 gradient-primary"
+                disabled={createClientMutation.isPending}
+              >
                 <Plus className="ml-2 h-4 w-4" />
-                إضافة العميل
+                {createClientMutation.isPending ? "جاري الإضافة..." : "إضافة العميل"}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
+                disabled={createClientMutation.isPending}
               >
                 إلغاء
               </Button>

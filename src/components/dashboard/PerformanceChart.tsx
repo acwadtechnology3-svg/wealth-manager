@@ -7,6 +7,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const data = [
   { month: "يناير", investments: 400000, profits: 48000 },
@@ -17,7 +18,11 @@ const data = [
   { month: "يونيو", investments: 1350000, profits: 162000 },
 ];
 
-export function PerformanceChart() {
+interface PerformanceChartProps {
+  isLoading?: boolean;
+}
+
+export function PerformanceChart({ isLoading }: PerformanceChartProps) {
   return (
     <div className="rounded-xl border bg-card p-6 shadow-card animate-slide-up">
       <div className="mb-6">
@@ -26,7 +31,12 @@ export function PerformanceChart() {
           إجمالي الاستثمارات والأرباح خلال الأشهر الماضية
         </p>
       </div>
-      <div className="h-80">
+      {isLoading ? (
+        <div className="h-80 flex items-center justify-center">
+          <Skeleton className="w-full h-full" />
+        </div>
+      ) : (
+        <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <defs>
@@ -82,17 +92,20 @@ export function PerformanceChart() {
             />
           </AreaChart>
         </ResponsiveContainer>
-      </div>
-      <div className="mt-4 flex items-center justify-center gap-6">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-primary" />
-          <span className="text-sm text-muted-foreground">الاستثمارات</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-secondary" />
-          <span className="text-sm text-muted-foreground">الأرباح</span>
+      )}
+      {!isLoading && (
+        <div className="mt-4 flex items-center justify-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded-full bg-primary" />
+            <span className="text-sm text-muted-foreground">الاستثمارات</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded-full bg-secondary" />
+            <span className="text-sm text-muted-foreground">الأرباح</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

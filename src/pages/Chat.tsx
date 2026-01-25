@@ -1,94 +1,131 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Send, Search, MoreVertical, Phone, Video, Paperclip, Smile } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-
-const contacts = [
-  { id: 1, name: "سارة أحمد", role: "مدير مبيعات", online: true, lastMessage: "تم إضافة العميل الجديد", time: "10:30 ص", unread: 2 },
-  { id: 2, name: "خالد محمود", role: "تيلي سيلز", online: true, lastMessage: "شكراً على المتابعة", time: "9:45 ص", unread: 0 },
-  { id: 3, name: "محمد علي", role: "تيلي سيلز", online: false, lastMessage: "سأرسل التقرير غداً", time: "أمس", unread: 0 },
-  { id: 4, name: "نورا حسين", role: "محاسب", online: true, lastMessage: "تم تحويل العمولات", time: "أمس", unread: 1 },
-  { id: 5, name: "الإدارة", role: "مجموعة", online: true, lastMessage: "اجتماع الساعة 2 ظهراً", time: "الإثنين", unread: 5 },
-  { id: 6, name: "أحمد فوزي", role: "مطور", online: false, lastMessage: "تم تحديث النظام", time: "الأحد", unread: 0 },
-  { id: 7, name: "فاطمة الزهراء", role: "HR", online: true, lastMessage: "تم اعتماد الإجازة", time: "السبت", unread: 3 },
-  { id: 8, name: "يوسف إبراهيم", role: "مدير عام", online: true, lastMessage: "أحسنتم جميعاً", time: "الجمعة", unread: 0 },
-];
-
-const messagesData: Record<number, Array<{ id: number; sender: string; content: string; time: string; isMe: boolean }>> = {
-  1: [
-    { id: 1, sender: "سارة أحمد", content: "صباح الخير! هل تم مراجعة ملف العميل الجديد؟", time: "9:00 ص", isMe: false },
-    { id: 2, sender: "أنا", content: "صباح النور سارة. نعم، تم المراجعة وكل شيء سليم.", time: "9:05 ص", isMe: true },
-    { id: 3, sender: "سارة أحمد", content: "ممتاز! العميل مستثمر بمبلغ 200,000 جنيه بنسبة ربح 12%", time: "9:10 ص", isMe: false },
-    { id: 4, sender: "أنا", content: "تمام، سأضيفه للنظام الآن وأحدد موعد أول صرف أرباح", time: "9:15 ص", isMe: true },
-    { id: 5, sender: "سارة أحمد", content: "شكراً لك. أيضاً لدي عميل آخر محتمل سأرسل بياناته لاحقاً", time: "9:20 ص", isMe: false },
-    { id: 6, sender: "أنا", content: "تمام، أنا في الانتظار", time: "9:25 ص", isMe: true },
-    { id: 7, sender: "سارة أحمد", content: "تم إضافة العميل الجديد", time: "10:30 ص", isMe: false },
-  ],
-  2: [
-    { id: 1, sender: "خالد محمود", content: "مرحباً، هل يمكنك مساعدتي في تسجيل عميل جديد؟", time: "8:30 ص", isMe: false },
-    { id: 2, sender: "أنا", content: "أهلاً خالد، بالتأكيد. ما هي بيانات العميل؟", time: "8:35 ص", isMe: true },
-    { id: 3, sender: "خالد محمود", content: "العميل اسمه محمد سعيد، رقم الهاتف 01012345678", time: "8:40 ص", isMe: false },
-    { id: 4, sender: "أنا", content: "تم تسجيله بنجاح. رقم الكود CLT00123", time: "8:50 ص", isMe: true },
-    { id: 5, sender: "خالد محمود", content: "شكراً على المتابعة", time: "9:45 ص", isMe: false },
-  ],
-  3: [
-    { id: 1, sender: "محمد علي", content: "السلام عليكم، أحتاج تقرير المبيعات الشهري", time: "3:00 م", isMe: false },
-    { id: 2, sender: "أنا", content: "وعليكم السلام، سأجهزه لك خلال ساعة", time: "3:05 م", isMe: true },
-    { id: 3, sender: "محمد علي", content: "ممتاز، شكراً لك", time: "3:10 م", isMe: false },
-    { id: 4, sender: "أنا", content: "تم إرسال التقرير على الإيميل", time: "4:00 م", isMe: true },
-    { id: 5, sender: "محمد علي", content: "سأرسل التقرير غداً", time: "5:00 م", isMe: false },
-  ],
-  4: [
-    { id: 1, sender: "نورا حسين", content: "مرحباً، العمولات جاهزة للتحويل", time: "11:00 ص", isMe: false },
-    { id: 2, sender: "أنا", content: "ممتاز نورا، كم إجمالي العمولات هذا الشهر؟", time: "11:05 ص", isMe: true },
-    { id: 3, sender: "نورا حسين", content: "إجمالي 45,000 جنيه لـ 12 موظف", time: "11:10 ص", isMe: false },
-    { id: 4, sender: "أنا", content: "تمام، أرسلي لي التفاصيل وسأوقع عليها", time: "11:15 ص", isMe: true },
-    { id: 5, sender: "نورا حسين", content: "تم تحويل العمولات", time: "2:00 م", isMe: false },
-  ],
-  5: [
-    { id: 1, sender: "يوسف إبراهيم", content: "تذكير: اجتماع فريق العمل الساعة 2 ظهراً", time: "10:00 ص", isMe: false },
-    { id: 2, sender: "سارة أحمد", content: "سأكون موجودة إن شاء الله", time: "10:05 ص", isMe: false },
-    { id: 3, sender: "أنا", content: "تمام، سأحضر المستندات المطلوبة", time: "10:10 ص", isMe: true },
-    { id: 4, sender: "خالد محمود", content: "هل يمكن تأجيله نصف ساعة؟", time: "10:15 ص", isMe: false },
-    { id: 5, sender: "يوسف إبراهيم", content: "لا مشكلة، الاجتماع الساعة 2:30", time: "10:20 ص", isMe: false },
-    { id: 6, sender: "نورا حسين", content: "اجتماع الساعة 2 ظهراً", time: "1:00 م", isMe: false },
-  ],
-  6: [
-    { id: 1, sender: "أحمد فوزي", content: "تم تحديث النظام بنجاح", time: "6:00 م", isMe: false },
-    { id: 2, sender: "أنا", content: "ممتاز أحمد، هل هناك أي تغييرات يجب أن نعرفها؟", time: "6:05 م", isMe: true },
-    { id: 3, sender: "أحمد فوزي", content: "نعم، تم إضافة ميزة التقارير التلقائية", time: "6:10 م", isMe: false },
-    { id: 4, sender: "أنا", content: "رائع! سأجربها غداً", time: "6:15 م", isMe: true },
-    { id: 5, sender: "أحمد فوزي", content: "تم تحديث النظام", time: "7:00 م", isMe: false },
-  ],
-  7: [
-    { id: 1, sender: "فاطمة الزهراء", content: "مرحباً، طلب الإجازة الخاص بك تم اعتماده", time: "9:00 ص", isMe: false },
-    { id: 2, sender: "أنا", content: "شكراً جزيلاً فاطمة", time: "9:05 ص", isMe: true },
-    { id: 3, sender: "فاطمة الزهراء", content: "الإجازة من يوم 15 إلى 20 من الشهر القادم", time: "9:10 ص", isMe: false },
-    { id: 4, sender: "أنا", content: "تمام، سأسلم المهام قبل الإجازة", time: "9:15 ص", isMe: true },
-    { id: 5, sender: "فاطمة الزهراء", content: "أيضاً لا تنسى ملء استمارة تقييم الأداء", time: "9:20 ص", isMe: false },
-    { id: 6, sender: "فاطمة الزهراء", content: "تم اعتماد الإجازة", time: "10:00 ص", isMe: false },
-  ],
-  8: [
-    { id: 1, sender: "يوسف إبراهيم", content: "أريد أن أشكر الجميع على الجهد المبذول هذا الشهر", time: "5:00 م", isMe: false },
-    { id: 2, sender: "أنا", content: "شكراً لك على الدعم المستمر", time: "5:05 م", isMe: true },
-    { id: 3, sender: "يوسف إبراهيم", content: "حققنا أهداف المبيعات بنسبة 120%", time: "5:10 م", isMe: false },
-    { id: 4, sender: "أنا", content: "هذا بفضل تعاون الفريق", time: "5:15 م", isMe: true },
-    { id: 5, sender: "يوسف إبراهيم", content: "أحسنتم جميعاً", time: "5:20 م", isMe: false },
-  ],
-};
+import { useAuth } from "@/hooks/useAuth";
+import { useEmployees } from "@/hooks/queries/useProfiles";
+import { useConversation, useSendMessage } from "@/hooks/queries/useMessages";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 
 export default function Chat() {
-  const [selectedContact, setSelectedContact] = useState(contacts[0]);
+  const { user, profile } = useAuth();
+  const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
+  const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const filteredContacts = contacts.filter((c) =>
-    c.name.includes(searchQuery)
+  // Filter out current user from employees list
+  const contacts = useMemo(() => {
+    return employees.filter(emp => emp.id !== user?.id);
+  }, [employees, user?.id]);
+
+  // Auto-select first contact
+  useEffect(() => {
+    if (contacts.length > 0 && !selectedContactId) {
+      setSelectedContactId(contacts[0].id);
+    }
+  }, [contacts, selectedContactId]);
+
+  // Fetch conversation with selected contact (with realtime)
+  const { data: conversationMessages = [], isLoading: loadingMessages } = useConversation(
+    user?.id,
+    selectedContactId || undefined,
+    100
   );
+
+  // Send message mutation
+  const sendMessageMutation = useSendMessage();
+
+  // Selected contact info
+  const selectedContact = contacts.find(c => c.id === selectedContactId);
+
+  // Filter contacts based on search
+  const filteredContacts = useMemo(() => {
+    if (!searchQuery) return contacts;
+    const query = searchQuery.toLowerCase();
+    return contacts.filter((c) =>
+      c.full_name?.toLowerCase().includes(query) ||
+      c.email?.toLowerCase().includes(query)
+    );
+  }, [contacts, searchQuery]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversationMessages]);
+
+  // Handle send message
+  const handleSendMessage = () => {
+    if (!message.trim() || !selectedContactId || !user?.id) return;
+
+    sendMessageMutation.mutate({
+      sender_id: user.id,
+      recipient_id: selectedContactId,
+      message: message.trim(),
+      is_group_message: false,
+      is_read: false,
+    });
+
+    setMessage("");
+  };
+
+  // Handle Enter key
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Format time
+  const formatTime = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "h:mm a", { locale: ar });
+    } catch {
+      return "";
+    }
+  };
+
+  // Loading state
+  if (loadingEmployees) {
+    return (
+      <MainLayout>
+        <div className="flex h-[calc(100vh-8rem)] rounded-xl border bg-card shadow-card overflow-hidden">
+          <div className="w-80 border-l flex flex-col p-4 space-y-4">
+            <Skeleton className="h-10 w-full" />
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+          <div className="flex-1 flex flex-col">
+            <Skeleton className="h-16 w-full" />
+            <div className="flex-1" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // No employees state
+  if (contacts.length === 0) {
+    return (
+      <MainLayout>
+        <div className="flex h-[calc(100vh-8rem)] rounded-xl border bg-card shadow-card overflow-hidden items-center justify-center">
+          <div className="text-center">
+            <p className="text-muted-foreground">لا يوجد موظفون للمحادثة</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -110,133 +147,168 @@ export default function Chat() {
 
           {/* Contacts List */}
           <ScrollArea className="flex-1">
-            {filteredContacts.map((contact) => (
-              <button
-                key={contact.id}
-                onClick={() => setSelectedContact(contact)}
-                className={cn(
-                  "w-full flex items-center gap-3 p-4 border-b transition-colors text-right",
-                  "hover:bg-muted/50",
-                  selectedContact.id === contact.id && "bg-muted"
-                )}
-              >
-                <div className="relative">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                      {contact.name.split(" ").map((n) => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                  {contact.online && (
-                    <span className="absolute bottom-0 left-0 h-3 w-3 rounded-full bg-success border-2 border-card" />
+            {filteredContacts.map((contact) => {
+              const initials = contact.full_name
+                ?.split(" ")
+                .map((n) => n[0])
+                .join("") || contact.email?.substring(0, 2).toUpperCase() || "??";
+
+              return (
+                <button
+                  key={contact.id}
+                  onClick={() => setSelectedContactId(contact.id)}
+                  className={cn(
+                    "w-full flex items-center gap-3 p-4 border-b transition-colors text-right",
+                    "hover:bg-muted/50",
+                    selectedContactId === contact.id && "bg-muted"
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold truncate">{contact.name}</p>
-                    <span className="text-xs text-muted-foreground">{contact.time}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground truncate">{contact.lastMessage}</p>
-                    {contact.unread > 0 && (
-                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
-                        {contact.unread}
-                      </span>
+                >
+                  <div className="relative">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    {contact.is_active && (
+                      <span className="absolute bottom-0 left-0 h-3 w-3 rounded-full bg-success border-2 border-card" />
                     )}
                   </div>
-                </div>
-              </button>
-            ))}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold truncate">{contact.full_name || contact.email}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {contact.department || "موظف"}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </ScrollArea>
         </div>
 
         {/* Chat Area */}
         <div className="flex-1 flex flex-col">
-          {/* Chat Header */}
-          <div className="flex items-center justify-between border-b p-4">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                  {selectedContact.name.split(" ").map((n) => n[0]).join("")}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold">{selectedContact.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {selectedContact.online ? (
-                    <span className="text-success">متصل الآن</span>
-                  ) : (
-                    "غير متصل"
-                  )}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon">
-                <Phone className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Video className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-              {(messagesData[selectedContact.id] || []).map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    "flex",
-                    msg.isMe ? "justify-start" : "justify-end"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "max-w-[70%] rounded-2xl px-4 py-2",
-                      msg.isMe
-                        ? "bg-primary text-primary-foreground rounded-br-none"
-                        : "bg-muted rounded-bl-none"
-                    )}
-                  >
-                    <p className="text-sm">{msg.content}</p>
-                    <p
-                      className={cn(
-                        "text-xs mt-1",
-                        msg.isMe ? "text-primary-foreground/70" : "text-muted-foreground"
+          {selectedContact ? (
+            <>
+              {/* Chat Header */}
+              <div className="flex items-center justify-between border-b p-4">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                      {selectedContact.full_name
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .join("") || "??"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold">{selectedContact.full_name || selectedContact.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedContact.is_active ? (
+                        <span className="text-success">متصل الآن</span>
+                      ) : (
+                        "غير متصل"
                       )}
-                    >
-                      {msg.time}
                     </p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" disabled>
+                    <Phone className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" disabled>
+                    <Video className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" disabled>
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
 
-          {/* Message Input */}
-          <div className="border-t p-4">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon">
-                <Paperclip className="h-5 w-5" />
-              </Button>
-              <Input
-                placeholder="اكتب رسالتك..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="flex-1"
-              />
-              <Button variant="ghost" size="icon">
-                <Smile className="h-5 w-5" />
-              </Button>
-              <Button className="gradient-primary" size="icon">
-                <Send className="h-5 w-5" />
-              </Button>
+              {/* Messages */}
+              <ScrollArea className="flex-1 p-4">
+                {loadingMessages ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <Skeleton key={i} className="h-16 w-3/4" />
+                    ))}
+                  </div>
+                ) : conversationMessages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">لا توجد رسائل بعد. ابدأ المحادثة!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {conversationMessages.map((msg) => {
+                      const isMe = msg.sender_id === user?.id;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={cn(
+                            "flex",
+                            isMe ? "justify-start" : "justify-end"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "max-w-[70%] rounded-2xl px-4 py-2",
+                              isMe
+                                ? "bg-primary text-primary-foreground rounded-br-none"
+                                : "bg-muted rounded-bl-none"
+                            )}
+                          >
+                            <p className="text-sm">{msg.message}</p>
+                            <p
+                              className={cn(
+                                "text-xs mt-1",
+                                isMe ? "text-primary-foreground/70" : "text-muted-foreground"
+                              )}
+                            >
+                              {formatTime(msg.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </ScrollArea>
+
+              {/* Message Input */}
+              <div className="border-t p-4">
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" disabled>
+                    <Paperclip className="h-5 w-5" />
+                  </Button>
+                  <Input
+                    placeholder="اكتب رسالتك..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="flex-1"
+                    disabled={sendMessageMutation.isPending}
+                  />
+                  <Button variant="ghost" size="icon" disabled>
+                    <Smile className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    className="gradient-primary"
+                    size="icon"
+                    onClick={handleSendMessage}
+                    disabled={!message.trim() || sendMessageMutation.isPending}
+                  >
+                    <Send className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">اختر محادثة للبدء</p>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </MainLayout>

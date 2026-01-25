@@ -1,20 +1,22 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import type { AppRole } from "@/types/database";
 
-type AppRole = "super_admin" | "admin" | "hr_manager" | "hr_officer" | "tele_sales" | "accountant" | "support";
-
+// Profile interface with optional fields for flexibility
 interface Profile {
-  id: string;
-  user_id: string;
-  first_name: string;
-  last_name: string;
+  id?: string;
+  user_id?: string;
   email: string;
-  phone: string | null;
-  department: string;
-  employee_code: string | null;
-  avatar_url: string | null;
-  is_active: boolean;
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  avatar_url?: string | null;
+  phone?: string | null;
+  department?: string | null;
+  employee_code?: string | null;
+  active_status?: boolean;
+  is_active?: boolean;
 }
 
 interface AuthContextType {
@@ -76,19 +78,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch profile
-      const { data: profileData, error: profileError } = await supabase
+      // Fetch profile with fallback (support both user_id and id schemas)
+      let profileData: Profile | null = null;
+
+      const { data: primaryProfile, error: primaryError } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
-      if (profileError && profileError.code !== "PGRST116") {
-        console.error("Error fetching profile:", profileError);
+      if (primaryError) {
+        const isMissingColumn = primaryError.message?.includes("user_id");
+        if (!isMissingColumn && primaryError.code !== "PGRST116") {
+          console.error("Error fetching profile:", primaryError);
+        }
+      } else if (primaryProfile) {
+        profileData = primaryProfile as Profile;
+      }
+
+      // Fallback: try fetching by id if user_id didn't work
+      if (!profileData) {
+        const { data: fallbackProfile, error: fallbackError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (fallbackError && fallbackError.code !== "PGRST116") {
+          console.error("Error fetching profile (fallback):", fallbackError);
+        }
+
+        if (fallbackProfile) {
+          profileData = fallbackProfile as Profile;
+        }
       }
 
       if (profileData) {
-        setProfile(profileData as Profile);
+        setProfile(profileData);
       }
 
       // Fetch roles
@@ -120,15 +146,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
-  
+
+  // Admin includes super_admin and admin
   const isAdmin = () => hasRole("super_admin") || hasRole("admin");
-  
+
+  // Super admin includes super_admin
   const isSuperAdmin = () => hasRole("super_admin");
-  
-  const isHR = () => 
-    hasRole("super_admin") || 
-    hasRole("admin") || 
-    hasRole("hr_manager") || 
+
+  // HR access includes super_admin, admin, hr_manager, and hr_officer
+  const isHR = () =>
+    hasRole("super_admin") ||
+    hasRole("admin") ||
+    hasRole("hr_manager") ||
     hasRole("hr_officer");
 
   return (

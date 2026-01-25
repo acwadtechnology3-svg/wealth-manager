@@ -1,8 +1,7 @@
-import { useState } from "react";
+﻿import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
   FileText,
   Search,
-  Plus,
   Download,
   Upload,
   Eye,
@@ -17,6 +16,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -42,14 +42,27 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { documents, employees } from "@/data/hrMockData";
+import { documentsApi } from "@/api/documents";
+import {
+  useDocuments,
+  useCreateDocument,
+  useDeleteDocument,
+} from "@/hooks/queries/useDocuments";
+import { useEmployees } from "@/hooks/queries/useProfiles";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
 const typeConfig = {
-  contract: { label: "عقد عمل", icon: FileCheck, className: "bg-primary/10 text-primary" },
-  id: { label: "بطاقة شخصية", icon: User, className: "bg-success/10 text-success" },
-  cv: { label: "سيرة ذاتية", icon: FileText, className: "bg-secondary/10 text-secondary-foreground" },
-  other: { label: "أخرى", icon: File, className: "bg-muted text-muted-foreground" },
+  contract: { label: "�¹�‚�¯ �¹�…�„", icon: FileCheck, className: "bg-primary/10 text-primary" },
+  id_card: { label: "�¨�·�§�‚�© �´�®�µ�Š�©", icon: User, className: "bg-success/10 text-success" },
+  certificate: { label: "�´�‡�§�¯�©", icon: FileText, className: "bg-secondary/10 text-secondary-foreground" },
+  resume: { label: "�³�Š�±�© �°�§�ª�Š�©", icon: FileText, className: "bg-secondary/10 text-secondary-foreground" },
+  other: { label: "�£�®�±�‰", icon: File, className: "bg-muted text-muted-foreground" },
+};
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "-";
+  return value.split("T")[0];
 };
 
 export default function Documents() {
@@ -63,39 +76,197 @@ export default function Documents() {
   const [documentType, setDocumentType] = useState<string>("contract");
   const [documentName, setDocumentName] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const filteredDocuments = documents.filter((doc) => {
-    const matchesSearch = doc.name.includes(searchQuery);
-    const matchesType = typeFilter === "all" || doc.type === typeFilter;
-    const matchesEmployee = employeeFilter === "all" || doc.employeeId === employeeFilter;
-    return matchesSearch && matchesType && matchesEmployee;
-  });
+  const { user } = useAuth();
+  const { data: employees = [] } = useEmployees();
+  const {
+    data: documents = [],
+    isLoading,
+    error,
+    refetch,
+  } = useDocuments();
+  const createDocument = useCreateDocument();
+  const deleteDocument = useDeleteDocument();
+
+  const employeeNameById = useMemo(() => {
+    return new Map(
+      employees.map((employee) => [
+        employee.user_id,
+        employee.full_name || employee.email || employee.user_id,
+      ])
+    );
+  }, [employees]);
+
+  const filteredDocuments = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    return documents.filter((doc) => {
+      const title = doc.title?.toLowerCase() || "";
+      const matchesSearch = !normalizedQuery || title.includes(normalizedQuery);
+      const matchesType = typeFilter === "all" || doc.document_type === typeFilter;
+      const matchesEmployee = employeeFilter === "all" || doc.employee_id === employeeFilter;
+      return matchesSearch && matchesType && matchesEmployee;
+    });
+  }, [documents, employeeFilter, searchQuery, typeFilter]);
 
   // Check for expiring documents
   const today = new Date();
   const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const expiringDocs = documents.filter((doc) => {
-    if (!doc.expiryDate) return false;
-    const expiry = new Date(doc.expiryDate);
-    return expiry <= thirtyDaysLater && expiry >= today;
-  });
-
-  const handleUpload = () => {
-    console.log({ selectedEmployee, documentType, documentName, expiryDate });
-    toast({
-      title: "تم الرفع",
-      description: "تم رفع المستند بنجاح",
+  const expiringDocs = useMemo(() => {
+    return documents.filter((doc) => {
+      if (!doc.expiry_date) return false;
+      const expiry = new Date(doc.expiry_date);
+      return expiry <= thirtyDaysLater && expiry >= today;
     });
+  }, [documents, thirtyDaysLater, today]);
+
+  const counts = useMemo(() => {
+    return {
+      contract: documents.filter((d) => d.document_type === "contract").length,
+      id_card: documents.filter((d) => d.document_type === "id_card").length,
+      resume: documents.filter((d) => d.document_type === "resume").length,
+      expiring: expiringDocs.length,
+    };
+  }, [documents, expiringDocs.length]);
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setSelectedFile(file);
+  };
+
+  const resetUploadForm = () => {
     setIsUploadDialogOpen(false);
     setSelectedEmployee("");
     setDocumentType("contract");
     setDocumentName("");
     setExpiryDate("");
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedEmployee || !documentName || !user?.id) return;
+
+    setIsUploading(true);
+    let uploadedPath: string | null = null;
+
+    try {
+      if (selectedFile) {
+        const uploadResult = await documentsApi.uploadFile(selectedFile, selectedEmployee);
+        uploadedPath = uploadResult.path;
+      }
+
+      await createDocument.mutateAsync({
+        employee_id: selectedEmployee,
+        document_type: documentType as keyof typeof typeConfig,
+        title: documentName,
+        description: undefined,
+        uploaded_by: user.id,
+        expiry_date: expiryDate || undefined,
+        file_name: selectedFile?.name || documentName,
+        file_size: selectedFile?.size,
+        file_url: uploadedPath || undefined,
+      });
+
+      resetUploadForm();
+    } catch (error) {
+      if (selectedFile && uploadedPath) {
+        await documentsApi.removeFile(uploadedPath);
+      } else if (selectedFile && !uploadedPath) {
+        toast({
+          title: "خطأ",
+          description: "فشل رفع الملف",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleOpen = async (url?: string | null) => {
+    if (!url) {
+      toast({
+        title: "الملف غير متوفر",
+        description: "لم يتم رفع ملف المستند بعد",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const signedUrl = await documentsApi.createSignedUrl(url);
+      window.open(signedUrl, "_blank");
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "تعذر فتح المستند",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    if (!window.confirm("�‡�„ �£�†�ª �…�ª�£�ƒ�¯ �…�† �­�°� �§�„�…�³�ª�†�¯؟")) return;
+    deleteDocument.mutate(id);
   };
 
   const getEmployeeName = (employeeId: string) => {
-    return employees.find((e) => e.id === employeeId)?.name || employeeId;
+    return employeeNameById.get(employeeId) || employeeId;
   };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="space-y-6">
+          <div>
+            <Skeleton className="h-8 w-56 mb-2" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <div className="grid gap-4 md:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-xl border bg-card p-4 shadow-card">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-lg" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-6 w-12" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl border bg-card shadow-card p-6">
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center py-16 space-y-4">
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-semibold">�­�¯�« �®�·�£ ��Š �ª�­�…�Š�„ �§�„�…�³�ª�†�¯�§�ª</h3>
+            <p className="text-sm text-muted-foreground">{error.message}</p>
+          </div>
+          <Button onClick={() => refetch()} variant="outline">
+            �¥�¹�§�¯�© �§�„�…�­�§�ˆ�„�©
+          </Button>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -103,21 +274,21 @@ export default function Documents() {
         {/* Header */}
         <div className="flex items-center justify-between animate-slide-right">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">العقود والمستندات</h1>
+            <h1 className="text-3xl font-bold text-foreground">�§�„�¹�‚�ˆ�¯ �ˆ�§�„�…�³�ª�†�¯�§�ª</h1>
             <p className="text-muted-foreground mt-1">
-              رفع وإدارة مستندات الموظفين
+              �±��¹ �ˆ�¥�¯�§�±�© �…�³�ª�†�¯�§�ª �§�„�…�ˆ�¸��Š�†
             </p>
           </div>
-          <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+          <Dialog open={isUploadDialogOpen} onOpenChange={(open) => (open ? setIsUploadDialogOpen(true) : resetUploadForm())}>
             <DialogTrigger asChild>
               <Button className="gradient-primary">
                 <Upload className="ml-2 h-4 w-4" />
-                رفع مستند
+                �±��¹ �…�³�ª�†�¯
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>رفع مستند جديد</DialogTitle>
+                <DialogTitle>�±��¹ �…�³�ª�†�¯ �¬�¯�Š�¯</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -128,8 +299,8 @@ export default function Documents() {
                     </SelectTrigger>
                     <SelectContent>
                       {employees.map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {emp.name}
+                        <SelectItem key={emp.user_id} value={emp.user_id}>
+                          {emp.full_name || emp.email}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -143,8 +314,9 @@ export default function Documents() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="contract">عقد عمل</SelectItem>
-                      <SelectItem value="id">بطاقة شخصية</SelectItem>
-                      <SelectItem value="cv">سيرة ذاتية</SelectItem>
+                      <SelectItem value="id_card">بطاقة شخصية</SelectItem>
+                      <SelectItem value="certificate">شهادة</SelectItem>
+                      <SelectItem value="resume">سيرة ذاتية</SelectItem>
                       <SelectItem value="other">أخرى</SelectItem>
                     </SelectContent>
                   </Select>
@@ -167,7 +339,17 @@ export default function Documents() {
                 </div>
                 <div className="space-y-2">
                   <Label>الملف</Label>
-                  <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,image/jpeg,image/png"
+                  />
+                  <div
+                    className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
                       اضغط لاختيار ملف أو اسحب الملف هنا
@@ -176,14 +358,23 @@ export default function Documents() {
                       PDF, DOC, DOCX, JPG, PNG (حد أقصى 10MB)
                     </p>
                   </div>
+                  {selectedFile ? (
+                    <p className="text-xs text-muted-foreground">
+                      {selectedFile.name} ({Math.max(1, Math.ceil(selectedFile.size / 1024))} KB)
+                    </p>
+                  ) : null}
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
-                  إلغاء
+                <Button variant="outline" onClick={resetUploadForm}>
+                  �¥�„�º�§�¡
                 </Button>
-                <Button className="gradient-primary" onClick={handleUpload}>
-                  رفع المستند
+                <Button
+                  className="gradient-primary"
+                  onClick={handleUpload}
+                  disabled={!selectedEmployee || !documentName || !user?.id || isUploading || createDocument.isPending}
+                >
+                  �±��¹ �§�„�…�³�ª�†�¯
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -195,11 +386,11 @@ export default function Documents() {
           <div className="flex items-center gap-4 rounded-xl border border-warning/30 bg-warning/5 p-4 animate-fade-in">
             <AlertTriangle className="h-5 w-5 text-warning" />
             <p className="flex-1 text-sm">
-              يوجد <span className="font-bold">{expiringDocs.length}</span> مستندات تنتهي خلال 30 يوم.
-              يرجى المتابعة.
+              �Š�ˆ�¬�¯ <span className="font-bold">{expiringDocs.length}</span> �…�³�ª�†�¯�§�ª �ª�†�ª�‡�Š �®�„�§�„ 30 �Š�ˆ�….
+              �Š�±�¬�‰ �§�„�…�ª�§�¨�¹�©.
             </p>
             <Button variant="outline" size="sm" className="border-warning/30 text-warning hover:bg-warning/10">
-              عرض المستندات
+              �¹�±�¶ �§�„�…�³�ª�†�¯�§�ª
             </Button>
           </div>
         )}
@@ -212,9 +403,9 @@ export default function Documents() {
                 <FileCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">عقود العمل</p>
+                <p className="text-sm text-muted-foreground">�¹�‚�ˆ�¯ �§�„�¹�…�„</p>
                 <p className="text-2xl font-bold">
-                  {documents.filter((d) => d.type === "contract").length}
+                  {counts.contract}
                 </p>
               </div>
             </div>
@@ -225,9 +416,9 @@ export default function Documents() {
                 <User className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">بطاقات شخصية</p>
+                <p className="text-sm text-muted-foreground">�¨�·�§�‚�§�ª �´�®�µ�Š�©</p>
                 <p className="text-2xl font-bold">
-                  {documents.filter((d) => d.type === "id").length}
+                  {counts.id_card}
                 </p>
               </div>
             </div>
@@ -238,9 +429,9 @@ export default function Documents() {
                 <FileText className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">السير الذاتية</p>
+                <p className="text-sm text-muted-foreground">�§�„�³�Š�± �§�„�°�§�ª�Š�©</p>
                 <p className="text-2xl font-bold">
-                  {documents.filter((d) => d.type === "cv").length}
+                  {counts.resume}
                 </p>
               </div>
             </div>
@@ -251,8 +442,8 @@ export default function Documents() {
                 <Calendar className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">تنتهي قريباً</p>
-                <p className="text-2xl font-bold text-warning">{expiringDocs.length}</p>
+                <p className="text-sm text-muted-foreground">�ª�†�ª�‡�Š �‚�±�Š�¨�§�‹</p>
+                <p className="text-2xl font-bold text-warning">{counts.expiring}</p>
               </div>
             </div>
           </div>
@@ -263,7 +454,7 @@ export default function Documents() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="بحث بالاسم..."
+              placeholder="�¨�­�« �¨�§�„�§�³�…..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-10"
@@ -271,27 +462,28 @@ export default function Documents() {
           </div>
           <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="الموظف" />
+              <SelectValue placeholder="�§�„�…�ˆ�¸�" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">جميع الموظفين</SelectItem>
+              <SelectItem value="all">�¬�…�Š�¹ �§�„�…�ˆ�¸��Š�†</SelectItem>
               {employees.map((emp) => (
-                <SelectItem key={emp.id} value={emp.id}>
-                  {emp.name}
+                <SelectItem key={emp.user_id} value={emp.user_id}>
+                  {emp.full_name || emp.email}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="النوع" />
+              <SelectValue placeholder="�§�„�†�ˆ�¹" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">جميع الأنواع</SelectItem>
-              <SelectItem value="contract">عقد عمل</SelectItem>
-              <SelectItem value="id">بطاقة شخصية</SelectItem>
-              <SelectItem value="cv">سيرة ذاتية</SelectItem>
-              <SelectItem value="other">أخرى</SelectItem>
+              <SelectItem value="all">�¬�…�Š�¹ �§�„�£�†�ˆ�§�¹</SelectItem>
+              <SelectItem value="contract">�¹�‚�¯ �¹�…�„</SelectItem>
+              <SelectItem value="id_card">�¨�·�§�‚�© �´�®�µ�Š�©</SelectItem>
+              <SelectItem value="certificate">�´�‡�§�¯�©</SelectItem>
+              <SelectItem value="resume">�³�Š�±�© �°�§�ª�Š�©</SelectItem>
+              <SelectItem value="other">�£�®�±�‰</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -301,46 +493,47 @@ export default function Documents() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">اسم المستند</TableHead>
-                <TableHead className="text-right">الموظف</TableHead>
-                <TableHead className="text-right">النوع</TableHead>
-                <TableHead className="text-right">تاريخ الرفع</TableHead>
-                <TableHead className="text-right">تاريخ الانتهاء</TableHead>
-                <TableHead className="text-right">الإجراءات</TableHead>
+                <TableHead className="text-right">�§�³�… �§�„�…�³�ª�†�¯</TableHead>
+                <TableHead className="text-right">�§�„�…�ˆ�¸�</TableHead>
+                <TableHead className="text-right">�§�„�†�ˆ�¹</TableHead>
+                <TableHead className="text-right">�ª�§�±�Š�® �§�„�±��¹</TableHead>
+                <TableHead className="text-right">�ª�§�±�Š�® �§�„�§�†�ª�‡�§�¡</TableHead>
+                <TableHead className="text-right">�§�„�¥�¬�±�§�¡�§�ª</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredDocuments.map((doc) => {
-                const TypeIcon = typeConfig[doc.type].icon;
-                const isExpiring = doc.expiryDate && new Date(doc.expiryDate) <= thirtyDaysLater;
-                
+                const TypeIcon = typeConfig[doc.document_type].icon;
+                const isExpiring = doc.expiry_date && new Date(doc.expiry_date) <= thirtyDaysLater;
+                const employeeName = doc.profiles?.full_name || doc.profiles?.email || getEmployeeName(doc.employee_id);
+
                 return (
                   <TableRow key={doc.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", typeConfig[doc.type].className)}>
+                        <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", typeConfig[doc.document_type].className)}>
                           <TypeIcon className="h-5 w-5" />
                         </div>
-                        <span className="font-medium">{doc.name}</span>
+                        <span className="font-medium">{doc.title}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {getEmployeeName(doc.employeeId)}
+                      {employeeName}
                     </TableCell>
                     <TableCell>
-                      <Badge className={typeConfig[doc.type].className}>
-                        {typeConfig[doc.type].label}
+                      <Badge className={typeConfig[doc.document_type].className}>
+                        {typeConfig[doc.document_type].label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{doc.uploadDate}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(doc.created_at)}</TableCell>
                     <TableCell>
-                      {doc.expiryDate ? (
+                      {doc.expiry_date ? (
                         <span className={cn(
                           "font-medium",
                           isExpiring ? "text-warning" : "text-muted-foreground"
                         )}>
                           {isExpiring && <AlertTriangle className="inline h-4 w-4 ml-1" />}
-                          {doc.expiryDate}
+                          {formatDate(doc.expiry_date)}
                         </span>
                       ) : (
                         "-"
@@ -348,13 +541,18 @@ export default function Documents() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" onClick={() => handleOpen(doc.file_url)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" onClick={() => handleOpen(doc.file_url)}>
                           <Download className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(doc.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -369,3 +567,11 @@ export default function Documents() {
     </MainLayout>
   );
 }
+
+
+
+
+
+
+
+

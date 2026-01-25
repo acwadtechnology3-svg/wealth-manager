@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Users,
@@ -6,7 +7,6 @@ import {
   FileText,
   Wallet,
   AlertTriangle,
-  TrendingUp,
   UserCheck,
   UserX,
   CalendarClock,
@@ -14,20 +14,47 @@ import {
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { employees, attendanceRecords, leaveRequests, hrAlerts, payrollRecords } from "@/data/hrMockData";
-
-const today = new Date().toISOString().split("T")[0];
+import { Skeleton } from "@/components/ui/skeleton";
+import { useEmployees } from "@/hooks/queries/useProfiles";
+import { useAttendance } from "@/hooks/queries/useAttendance";
+import { useLeaves } from "@/hooks/queries/useLeaves";
+import { usePayroll } from "@/hooks/queries/usePayroll";
 
 export default function HRDashboard() {
-  const todayAttendance = attendanceRecords.filter((r) => r.date === "2024-01-22");
-  const presentCount = todayAttendance.filter((r) => r.status === "present").length;
-  const lateCount = todayAttendance.filter((r) => r.status === "late").length;
-  const absentCount = todayAttendance.filter((r) => r.status === "absent").length;
-  
-  const pendingLeaves = leaveRequests.filter((l) => l.status === "pending");
-  const unreadAlerts = hrAlerts.filter((a) => !a.isRead);
-  const pendingPayroll = payrollRecords.filter((p) => p.status === "pending");
-  const totalPendingSalaries = pendingPayroll.reduce((acc, p) => acc + p.netSalary, 0);
+  const today = new Date().toISOString().split("T")[0];
+
+  // Fetch data
+  const { data: employees = [], isLoading: loadingEmployees } = useEmployees();
+  const { data: allAttendance = [], isLoading: loadingAttendance } = useAttendance({
+    startDate: today,
+    endDate: today,
+  });
+  const { data: allLeaves = [], isLoading: loadingLeaves } = useLeaves();
+  const { data: allPayroll = [], isLoading: loadingPayroll } = usePayroll();
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const todayAttendance = allAttendance.filter((r) => r.date === today);
+    const presentCount = todayAttendance.filter((r) => r.status === "present").length;
+    const lateCount = todayAttendance.filter((r) => r.status === "late").length;
+    const absentCount = todayAttendance.filter((r) => r.status === "absent").length;
+
+    const pendingLeaves = allLeaves.filter((l) => l.status === "pending");
+    const pendingPayroll = allPayroll.filter((p) => p.status === "draft" || p.status === "approved");
+    const totalPendingSalaries = pendingPayroll.reduce(
+      (acc, p) => acc + Number(p.total_salary),
+      0
+    );
+
+    return {
+      presentCount,
+      lateCount,
+      absentCount,
+      pendingLeavesCount: pendingLeaves.length,
+      pendingPayrollCount: pendingPayroll.length,
+      totalPendingSalaries,
+    };
+  }, [allAttendance, allLeaves, allPayroll, today]);
 
   const hrModules = [
     {
@@ -44,7 +71,7 @@ export default function HRDashboard() {
       icon: Clock,
       href: "/hr/attendance",
       color: "bg-success/10 text-success",
-      stats: `${presentCount} حاضر اليوم`,
+      stats: `${stats.presentCount} حاضر اليوم`,
     },
     {
       title: "الإجازات",
@@ -52,7 +79,7 @@ export default function HRDashboard() {
       icon: Calendar,
       href: "/hr/leaves",
       color: "bg-warning/10 text-warning",
-      stats: `${pendingLeaves.length} طلب معلق`,
+      stats: `${stats.pendingLeavesCount} طلب معلق`,
     },
     {
       title: "العقود والمستندات",
@@ -68,7 +95,7 @@ export default function HRDashboard() {
       icon: Wallet,
       href: "/hr/payroll",
       color: "bg-accent/10 text-accent-foreground",
-      stats: `${pendingPayroll.length} كشف معلق`,
+      stats: `${stats.pendingPayrollCount} كشف معلق`,
     },
     {
       title: "الجزاءات",
@@ -80,15 +107,38 @@ export default function HRDashboard() {
     },
   ];
 
+  const isLoading = loadingEmployees || loadingAttendance || loadingLeaves || loadingPayroll;
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">إدارة الموارد البشرية</h1>
+            <p className="text-muted-foreground mt-1">لوحة تحكم HR الشاملة</p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <Skeleton key={i} className="h-40 w-full" />
+            ))}
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="animate-slide-right">
           <h1 className="text-3xl font-bold text-foreground">إدارة الموارد البشرية</h1>
-          <p className="text-muted-foreground mt-1">
-            لوحة تحكم HR الشاملة
-          </p>
+          <p className="text-muted-foreground mt-1">لوحة تحكم HR الشاملة</p>
         </div>
 
         {/* Quick Stats */}
@@ -100,7 +150,7 @@ export default function HRDashboard() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">الحضور اليوم</p>
-                <p className="text-2xl font-bold text-success">{presentCount}</p>
+                <p className="text-2xl font-bold text-success">{stats.presentCount}</p>
               </div>
             </div>
           </div>
@@ -111,7 +161,7 @@ export default function HRDashboard() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">متأخرين</p>
-                <p className="text-2xl font-bold text-warning">{lateCount}</p>
+                <p className="text-2xl font-bold text-warning">{stats.lateCount}</p>
               </div>
             </div>
           </div>
@@ -122,7 +172,7 @@ export default function HRDashboard() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">غائبين</p>
-                <p className="text-2xl font-bold text-destructive">{absentCount}</p>
+                <p className="text-2xl font-bold text-destructive">{stats.absentCount}</p>
               </div>
             </div>
           </div>
@@ -133,7 +183,7 @@ export default function HRDashboard() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">طلبات إجازة</p>
-                <p className="text-2xl font-bold">{pendingLeaves.length}</p>
+                <p className="text-2xl font-bold">{stats.pendingLeavesCount}</p>
               </div>
             </div>
           </div>
@@ -155,9 +205,7 @@ export default function HRDashboard() {
                   <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
                     {module.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {module.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">{module.description}</p>
                   <Badge variant="secondary" className="mt-3">
                     {module.stats}
                   </Badge>
@@ -167,71 +215,33 @@ export default function HRDashboard() {
           ))}
         </div>
 
-        {/* Alerts Section */}
-        {unreadAlerts.length > 0 && (
-          <div className="rounded-xl border bg-card shadow-card animate-slide-up">
-            <div className="border-b p-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-warning" />
-                  تنبيهات HR
-                  <Badge variant="destructive">{unreadAlerts.length}</Badge>
-                </h3>
-                <Button variant="ghost" size="sm">
-                  عرض الكل
-                </Button>
+        {/* Pending Payroll Summary */}
+        {stats.pendingPayrollCount > 0 && (
+          <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-primary/10 p-6 shadow-card animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-lg">الرواتب المعلقة</h3>
+                <p className="text-muted-foreground text-sm">
+                  {stats.pendingPayrollCount} كشف راتب في انتظار الصرف
+                </p>
+              </div>
+              <div className="text-left">
+                <p className="text-sm text-muted-foreground">الإجمالي</p>
+                <p className="text-3xl font-bold text-primary">
+                  {stats.totalPendingSalaries.toLocaleString('ar-EG', {maximumFractionDigits: 0})} ج.م
+                </p>
               </div>
             </div>
-            <div className="divide-y">
-              {unreadAlerts.slice(0, 5).map((alert) => (
-                <div key={alert.id} className="flex items-center gap-4 p-4 hover:bg-muted/50">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${
-                    alert.type === "late" ? "bg-warning/10 text-warning" :
-                    alert.type === "absent" ? "bg-destructive/10 text-destructive" :
-                    alert.type === "contract-expiry" ? "bg-primary/10 text-primary" :
-                    "bg-success/10 text-success"
-                  }`}>
-                    {alert.type === "late" && <Clock className="h-5 w-5" />}
-                    {alert.type === "absent" && <UserX className="h-5 w-5" />}
-                    {alert.type === "contract-expiry" && <FileText className="h-5 w-5" />}
-                    {alert.type === "leave-request" && <Calendar className="h-5 w-5" />}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{alert.employeeName}</p>
-                    <p className="text-sm text-muted-foreground">{alert.message}</p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{alert.date}</span>
-                </div>
-              ))}
+            <div className="mt-4 flex gap-2">
+              <Link to="/hr/payroll">
+                <Button className="gradient-primary">
+                  <Wallet className="ml-2 h-4 w-4" />
+                  إدارة الرواتب
+                </Button>
+              </Link>
             </div>
           </div>
         )}
-
-        {/* Pending Payroll Summary */}
-        <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-primary/10 p-6 shadow-card animate-fade-in">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-lg">الرواتب المعلقة</h3>
-              <p className="text-muted-foreground text-sm">
-                {pendingPayroll.length} كشف راتب في انتظار الصرف
-              </p>
-            </div>
-            <div className="text-left">
-              <p className="text-sm text-muted-foreground">الإجمالي</p>
-              <p className="text-3xl font-bold text-primary">
-                {totalPendingSalaries.toLocaleString()} ج.م
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <Link to="/hr/payroll">
-              <Button className="gradient-primary">
-                <Wallet className="ml-2 h-4 w-4" />
-                إدارة الرواتب
-              </Button>
-            </Link>
-          </div>
-        </div>
       </div>
     </MainLayout>
   );

@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          check_in: string | null
+          check_out: string | null
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          notes: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          date: string
+          employee_id: string
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -181,6 +217,162 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_commissions: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          employee_id: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          period_month: number
+          period_year: number
+          status: Database["public"]["Enums"]["commission_status"]
+          total_clients: number
+          total_investments: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          employee_id: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          period_month: number
+          period_year: number
+          status?: Database["public"]["Enums"]["commission_status"]
+          total_clients?: number
+          total_investments?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          period_month?: number
+          period_year?: number
+          status?: Database["public"]["Enums"]["commission_status"]
+          total_clients?: number
+          total_investments?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      employee_documents: {
+        Row: {
+          created_at: string
+          description: string | null
+          document_type: Database["public"]["Enums"]["document_type"]
+          employee_id: string
+          expiry_date: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          is_verified: boolean
+          title: string
+          updated_at: string
+          uploaded_by: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          document_type: Database["public"]["Enums"]["document_type"]
+          employee_id: string
+          expiry_date?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_verified?: boolean
+          title: string
+          updated_at?: string
+          uploaded_by: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          document_type?: Database["public"]["Enums"]["document_type"]
+          employee_id?: string
+          expiry_date?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          is_verified?: boolean
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      employee_penalties: {
+        Row: {
+          amount: number | null
+          created_at: string
+          description: string | null
+          employee_id: string
+          id: string
+          is_active: boolean
+          issued_by: string
+          notes: string | null
+          penalty_date: string
+          penalty_type: Database["public"]["Enums"]["penalty_type"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          is_active?: boolean
+          issued_by: string
+          notes?: string | null
+          penalty_date: string
+          penalty_type: Database["public"]["Enums"]["penalty_type"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          is_active?: boolean
+          issued_by?: string
+          notes?: string | null
+          penalty_date?: string
+          penalty_type?: Database["public"]["Enums"]["penalty_type"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employee_targets: {
         Row: {
           created_at: string
@@ -220,6 +412,114 @@ export type Database = {
         }
         Relationships: []
       }
+      leave_requests: {
+        Row: {
+          created_at: string
+          days_count: number
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["leave_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          days_count: number
+          employee_id: string
+          end_date: string
+          id?: string
+          leave_type: Database["public"]["Enums"]["leave_type"]
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date: string
+          status?: Database["public"]["Enums"]["leave_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          days_count?: number
+          employee_id?: string
+          end_date?: string
+          id?: string
+          leave_type?: Database["public"]["Enums"]["leave_type"]
+          reason?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["leave_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payroll_records: {
+        Row: {
+          allowances: number
+          base_salary: number
+          bonuses: number
+          commission: number
+          created_at: string
+          deductions: number
+          employee_id: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          period_month: number
+          period_year: number
+          processed_at: string | null
+          processed_by: string | null
+          status: Database["public"]["Enums"]["payroll_status"]
+          total_salary: number
+          updated_at: string
+        }
+        Insert: {
+          allowances?: number
+          base_salary?: number
+          bonuses?: number
+          commission?: number
+          created_at?: string
+          deductions?: number
+          employee_id: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          period_month: number
+          period_year: number
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["payroll_status"]
+          total_salary?: number
+          updated_at?: string
+        }
+        Update: {
+          allowances?: number
+          base_salary?: number
+          bonuses?: number
+          commission?: number
+          created_at?: string
+          deductions?: number
+          employee_id?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          period_month?: number
+          period_year?: number
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: Database["public"]["Enums"]["payroll_status"]
+          total_salary?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -228,6 +528,7 @@ export type Database = {
           email: string
           employee_code: string | null
           first_name: string
+          full_name: string | null
           id: string
           is_active: boolean
           last_name: string
@@ -242,6 +543,7 @@ export type Database = {
           email: string
           employee_code?: string | null
           first_name: string
+          full_name?: string | null
           id?: string
           is_active?: boolean
           last_name: string
@@ -256,6 +558,7 @@ export type Database = {
           email?: string
           employee_code?: string | null
           first_name?: string
+          full_name?: string | null
           id?: string
           is_active?: boolean
           last_name?: string
@@ -426,7 +729,19 @@ export type Database = {
         | "tele_sales"
         | "accountant"
         | "support"
+      commission_status: "pending" | "approved" | "paid" | "cancelled"
       department: "admin" | "hr" | "tele_sales" | "finance" | "support"
+      document_type: "contract" | "id_card" | "certificate" | "resume" | "other"
+      leave_status: "pending" | "approved" | "rejected" | "cancelled"
+      leave_type:
+        | "vacation"
+        | "sick"
+        | "personal"
+        | "maternity"
+        | "paternity"
+        | "unpaid"
+      payroll_status: "draft" | "approved" | "paid"
+      penalty_type: "warning" | "suspension" | "fine" | "other"
       permission_category:
         | "dashboard"
         | "clients"
@@ -574,7 +889,20 @@ export const Constants = {
         "accountant",
         "support",
       ],
+      commission_status: ["pending", "approved", "paid", "cancelled"],
       department: ["admin", "hr", "tele_sales", "finance", "support"],
+      document_type: ["contract", "id_card", "certificate", "resume", "other"],
+      leave_status: ["pending", "approved", "rejected", "cancelled"],
+      leave_type: [
+        "vacation",
+        "sick",
+        "personal",
+        "maternity",
+        "paternity",
+        "unpaid",
+      ],
+      payroll_status: ["draft", "approved", "paid"],
+      penalty_type: ["warning", "suspension", "fine", "other"],
       permission_category: [
         "dashboard",
         "clients",

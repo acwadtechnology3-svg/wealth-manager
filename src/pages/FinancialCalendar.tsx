@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ChevronRight,
   ChevronLeft,
@@ -10,6 +10,7 @@ import {
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -18,18 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useWithdrawalsWithClients } from "@/hooks/queries/useWithdrawals";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 
-const events = [
-  { date: "2024-02-05", type: "deposit", client: "أحمد علي", amount: 50000, status: "done" },
-  { date: "2024-02-08", type: "profit", client: "محمد سعيد", amount: 8500, status: "late" },
-  { date: "2024-02-10", type: "withdraw", client: "فاطمة حسن", amount: 30000, status: "upcoming" },
-  { date: "2024-02-12", type: "profit", client: "خالد عمر", amount: 4000, status: "upcoming" },
-  { date: "2024-02-15", type: "deposit", client: "نورة سعد", amount: 100000, status: "upcoming" },
-  { date: "2024-02-18", type: "withdraw", client: "يوسف أحمد", amount: 13200, status: "upcoming" },
-  { date: "2024-02-20", type: "profit", client: "سارة محمد", amount: 18000, status: "upcoming" },
-  { date: "2024-02-22", type: "deposit", client: "عمر خالد", amount: 75000, status: "upcoming" },
-  { date: "2024-02-25", type: "withdraw", client: "هالة أحمد", amount: 25000, status: "upcoming" },
-];
+type CalendarEvent = {
+  date: string;
+  type: "withdraw" | "profit" | "deposit";
+  client: string;
+  amount: number;
+  status: "done" | "upcoming" | "late";
+};
 
 const eventConfig = {
   withdraw: { icon: ArrowUpCircle, label: "سحب", color: "bg-destructive/10 text-destructive border-destructive/20" },
@@ -46,9 +45,47 @@ const statusConfig = {
 const daysOfWeek = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
 export default function FinancialCalendar() {
-  const [currentDate, setCurrentDate] = useState(new Date(2024, 1, 1));
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Calculate date range for the current month
+  const monthStart = useMemo(() => {
+    return format(startOfMonth(currentDate), "yyyy-MM-dd");
+  }, [currentDate]);
+
+  const monthEnd = useMemo(() => {
+    return format(endOfMonth(currentDate), "yyyy-MM-dd");
+  }, [currentDate]);
+
+  // Fetch withdrawals for the current month
+  const { data: withdrawals = [], isLoading } = useWithdrawalsWithClients({
+    startDate: monthStart,
+    endDate: monthEnd,
+  });
+
+  // Map withdrawals to calendar events
+  const events = useMemo((): CalendarEvent[] => {
+    return withdrawals.map((withdrawal) => {
+      const clientName = withdrawal.client_deposits?.clients?.name || "عميل غير معروف";
+
+      // Map withdrawal status to calendar status
+      let eventStatus: "done" | "upcoming" | "late" = "upcoming";
+      if (withdrawal.status === "completed") {
+        eventStatus = "done";
+      } else if (withdrawal.status === "overdue") {
+        eventStatus = "late";
+      }
+
+      return {
+        date: withdrawal.scheduled_date,
+        type: "withdraw" as const,
+        client: clientName,
+        amount: withdrawal.amount,
+        status: eventStatus,
+      };
+    });
+  }, [withdrawals]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -63,7 +100,11 @@ export default function FinancialCalendar() {
   const { daysInMonth, startingDay } = getDaysInMonth(currentDate);
 
   const getEventsForDay = (day: number) => {
-    const dateStr = `2024-02-${day.toString().padStart(2, "0")}`;
+    const year = currentDate.getFullYear();
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
+    const dayStr = day.toString().padStart(2, "0");
+    const dateStr = `${year}-${month}-${dayStr}`;
+
     return events.filter((e) => {
       const matchesType = typeFilter === "all" || e.type === typeFilter;
       const matchesStatus = statusFilter === "all" || e.status === statusFilter;
@@ -80,6 +121,25 @@ export default function FinancialCalendar() {
     "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
   ];
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">التقويم المالي</h1>
+              <p className="text-muted-foreground mt-1">متابعة مواعيد الإيداعات والسحوبات والأرباح</p>
+            </div>
+          </div>
+          <div className="rounded-xl border bg-card shadow-card p-6">
+            <Skeleton className="h-[600px] w-full" />
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -88,7 +148,7 @@ export default function FinancialCalendar() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">التقويم المالي</h1>
             <p className="text-muted-foreground mt-1">
-              متابعة مواعيد الإيداعات والسحوبات والأرباح
+              متابعة مواعيد السحوبات (البيانات المتاحة: السحوبات فقط)
             </p>
           </div>
         </div>
@@ -174,7 +234,13 @@ export default function FinancialCalendar() {
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dayEvents = getEventsForDay(day);
-              const isToday = day === 8; // Simulating today as Feb 8
+
+              // Check if this day is today
+              const today = new Date();
+              const isToday =
+                day === today.getDate() &&
+                currentDate.getMonth() === today.getMonth() &&
+                currentDate.getFullYear() === today.getFullYear();
 
               return (
                 <div

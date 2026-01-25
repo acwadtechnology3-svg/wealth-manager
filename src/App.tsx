@@ -1,11 +1,12 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { PermissionsProvider } from "@/hooks/usePermissions";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { queryClient } from "@/lib/queryClient";
 // Public Pages
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -36,8 +37,6 @@ import PermissionManagement from "./pages/admin/PermissionManagement";
 import ClientCalls from "./pages/admin/ClientCalls";
 import EmployeeTargets from "./pages/admin/EmployeeTargets";
 import TeamChat from "./pages/admin/TeamChat";
-
-const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Wallet,
   TrendingUp,
@@ -12,6 +12,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -28,77 +29,96 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useCommissions, useCommissionStats, useMarkCommissionAsPaid, useApproveCommission } from "@/hooks/queries/useCommissions";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 
-const commissions = [
-  {
-    id: 1,
-    employee: "سارة أحمد",
-    month: "يناير 2024",
-    clients: 12,
-    totalInvestments: 450000,
-    rate: 5,
-    amount: 22500,
-    status: "paid",
-    paidDate: "2024-02-01",
-  },
-  {
-    id: 2,
-    employee: "خالد محمود",
-    month: "يناير 2024",
-    clients: 8,
-    totalInvestments: 320000,
-    rate: 4.5,
-    amount: 14400,
-    status: "paid",
-    paidDate: "2024-02-01",
-  },
-  {
-    id: 3,
-    employee: "محمد علي",
-    month: "يناير 2024",
-    clients: 6,
-    totalInvestments: 180000,
-    rate: 5,
-    amount: 9000,
-    status: "pending",
-    paidDate: null,
-  },
-  {
-    id: 4,
-    employee: "نورا حسين",
-    month: "يناير 2024",
-    clients: 5,
-    totalInvestments: 150000,
-    rate: 4,
-    amount: 6000,
-    status: "pending",
-    paidDate: null,
-  },
-  {
-    id: 5,
-    employee: "عمر سعيد",
-    month: "يناير 2024",
-    clients: 4,
-    totalInvestments: 100000,
-    rate: 5.5,
-    amount: 5500,
-    status: "paid",
-    paidDate: "2024-02-02",
-  },
+const monthNames = [
+  "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+  "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
 ];
 
-const monthlyStats = {
-  totalCommissions: 57400,
-  paidCommissions: 42400,
-  pendingCommissions: 15000,
-  topPerformer: "سارة أحمد",
-};
-
 export default function Commissions() {
-  const [monthFilter, setMonthFilter] = useState("january-2024");
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
 
-  const paidPercentage =
-    (monthlyStats.paidCommissions / monthlyStats.totalCommissions) * 100;
+  // Fetch commissions for selected period
+  const { data: commissions = [], isLoading: loadingCommissions } = useCommissions({
+    periodMonth: selectedMonth,
+    periodYear: selectedYear,
+  });
+
+  // Fetch commission statistics
+  const { data: stats, isLoading: loadingStats } = useCommissionStats();
+
+  // Mutations
+  const markAsPaidMutation = useMarkCommissionAsPaid();
+  const approveMutation = useApproveCommission();
+
+  // Calculate stats for selected period
+  const periodStats = useMemo(() => {
+    const total = commissions.reduce((sum, c) => sum + Number(c.commission_amount), 0);
+    const paid = commissions
+      .filter(c => c.status === 'paid')
+      .reduce((sum, c) => sum + Number(c.commission_amount), 0);
+    const pending = commissions
+      .filter(c => c.status === 'pending')
+      .reduce((sum, c) => sum + Number(c.commission_amount), 0);
+
+    const topPerformer = commissions.length > 0
+      ? commissions.sort((a, b) => Number(b.commission_amount) - Number(a.commission_amount))[0]
+      : null;
+
+    return {
+      totalCommissions: total,
+      paidCommissions: paid,
+      pendingCommissions: pending,
+      topPerformer: topPerformer?.profiles?.full_name || "-",
+      topPerformerAmount: topPerformer ? Number(topPerformer.commission_amount) : 0,
+    };
+  }, [commissions]);
+
+  const paidPercentage = periodStats.totalCommissions > 0
+    ? (periodStats.paidCommissions / periodStats.totalCommissions) * 100
+    : 0;
+
+  // Generate month options
+  const monthOptions = Array.from({ length: 12 }, (_, i) => ({
+    value: `${i + 1}-${selectedYear}`,
+    label: `${monthNames[i]} ${selectedYear}`,
+    month: i + 1,
+    year: selectedYear,
+  }));
+
+  // Handle month change
+  const handleMonthChange = (value: string) => {
+    const [month, year] = value.split('-').map(Number);
+    setSelectedMonth(month);
+    setSelectedYear(year);
+  };
+
+  // Loading state
+  if (loadingCommissions || loadingStats) {
+    return (
+      <MainLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">العمولات</h1>
+              <p className="text-muted-foreground mt-1">إدارة ومتابعة عمولات الموظفين الشهرية</p>
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
+          </div>
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -112,18 +132,23 @@ export default function Commissions() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <Select
+              value={`${selectedMonth}-${selectedYear}`}
+              onValueChange={handleMonthChange}
+            >
               <SelectTrigger className="w-48">
                 <Calendar className="ml-2 h-4 w-4" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="january-2024">يناير 2024</SelectItem>
-                <SelectItem value="december-2023">ديسمبر 2023</SelectItem>
-                <SelectItem value="november-2023">نوفمبر 2023</SelectItem>
+                {monthOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            <Button variant="outline">
+            <Button variant="outline" disabled>
               <Download className="ml-2 h-4 w-4" />
               تصدير التقرير
             </Button>
@@ -137,7 +162,7 @@ export default function Commissions() {
               <div>
                 <p className="text-sm text-muted-foreground">إجمالي العمولات</p>
                 <p className="text-3xl font-bold mt-1">
-                  {monthlyStats.totalCommissions.toLocaleString()}
+                  {periodStats.totalCommissions.toLocaleString('ar-EG', {maximumFractionDigits: 0})}
                 </p>
                 <p className="text-sm text-muted-foreground">ج.م</p>
               </div>
@@ -152,7 +177,7 @@ export default function Commissions() {
               <div>
                 <p className="text-sm text-muted-foreground">تم صرفها</p>
                 <p className="text-3xl font-bold mt-1 text-success">
-                  {monthlyStats.paidCommissions.toLocaleString()}
+                  {periodStats.paidCommissions.toLocaleString('ar-EG', {maximumFractionDigits: 0})}
                 </p>
                 <p className="text-sm text-muted-foreground">ج.م</p>
               </div>
@@ -167,7 +192,7 @@ export default function Commissions() {
               <div>
                 <p className="text-sm text-muted-foreground">في الانتظار</p>
                 <p className="text-3xl font-bold mt-1 text-warning">
-                  {monthlyStats.pendingCommissions.toLocaleString()}
+                  {periodStats.pendingCommissions.toLocaleString('ar-EG', {maximumFractionDigits: 0})}
                 </p>
                 <p className="text-sm text-muted-foreground">ج.م</p>
               </div>
@@ -182,9 +207,11 @@ export default function Commissions() {
               <div>
                 <p className="text-sm text-muted-foreground">أعلى أداء</p>
                 <p className="text-xl font-bold mt-1">
-                  {monthlyStats.topPerformer}
+                  {periodStats.topPerformer}
                 </p>
-                <p className="text-sm text-success">22,500 ج.م</p>
+                <p className="text-sm text-success">
+                  {periodStats.topPerformerAmount.toLocaleString('ar-EG', {maximumFractionDigits: 0})} ج.م
+                </p>
               </div>
               <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-secondary/10 text-secondary">
                 <TrendingUp className="h-7 w-7" />
@@ -208,9 +235,9 @@ export default function Commissions() {
           </div>
           <Progress value={paidPercentage} className="h-3" />
           <div className="flex items-center justify-between mt-2 text-sm text-muted-foreground">
-            <span>تم صرفها: {monthlyStats.paidCommissions.toLocaleString()} ج.م</span>
+            <span>تم صرفها: {periodStats.paidCommissions.toLocaleString('ar-EG', {maximumFractionDigits: 0})} ج.م</span>
             <span>
-              المتبقي: {monthlyStats.pendingCommissions.toLocaleString()} ج.م
+              المتبقي: {periodStats.pendingCommissions.toLocaleString('ar-EG', {maximumFractionDigits: 0})} ج.م
             </span>
           </div>
         </div>
@@ -221,10 +248,10 @@ export default function Commissions() {
             <div>
               <h3 className="text-lg font-semibold">تفاصيل العمولات</h3>
               <p className="text-sm text-muted-foreground">
-                عمولات الموظفين لشهر يناير 2024
+                عمولات الموظفين لشهر {monthNames[selectedMonth - 1]} {selectedYear}
               </p>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled>
               <Filter className="ml-2 h-4 w-4" />
               تصفية
             </Button>
@@ -243,51 +270,69 @@ export default function Commissions() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {commissions.map((commission) => (
-                <TableRow key={commission.id}>
-                  <TableCell className="font-medium">
-                    {commission.employee}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {commission.month}
-                  </TableCell>
-                  <TableCell>{commission.clients}</TableCell>
-                  <TableCell>
-                    {commission.totalInvestments.toLocaleString()} ج.م
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{commission.rate}%</Badge>
-                  </TableCell>
-                  <TableCell className="font-semibold text-success">
-                    {commission.amount.toLocaleString()} ج.م
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={cn(
-                        "font-medium",
-                        commission.status === "paid"
-                          ? "bg-success/10 text-success border-success/20"
-                          : "bg-warning/10 text-warning border-warning/20"
-                      )}
-                    >
-                      {commission.status === "paid" ? (
-                        <>
-                          <CheckCircle className="ml-1 h-3 w-3" />
-                          تم الصرف
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="ml-1 h-3 w-3" />
-                          في الانتظار
-                        </>
-                      )}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {commission.paidDate || "-"}
+              {commissions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    لا توجد عمولات لهذه الفترة
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                commissions.map((commission) => (
+                  <TableRow key={commission.id}>
+                    <TableCell className="font-medium">
+                      {commission.profiles?.full_name || commission.profiles?.email || "-"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {monthNames[commission.period_month - 1]} {commission.period_year}
+                    </TableCell>
+                    <TableCell>{commission.total_clients}</TableCell>
+                    <TableCell>
+                      {Number(commission.total_investments).toLocaleString('ar-EG', {maximumFractionDigits: 0})} ج.م
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{Number(commission.commission_rate).toFixed(1)}%</Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold text-success">
+                      {Number(commission.commission_amount).toLocaleString('ar-EG', {maximumFractionDigits: 0})} ج.م
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={cn(
+                          "font-medium",
+                          commission.status === "paid"
+                            ? "bg-success/10 text-success border-success/20"
+                            : commission.status === "approved"
+                            ? "bg-secondary/10 text-secondary border-secondary/20"
+                            : "bg-warning/10 text-warning border-warning/20"
+                        )}
+                      >
+                        {commission.status === "paid" ? (
+                          <>
+                            <CheckCircle className="ml-1 h-3 w-3" />
+                            تم الصرف
+                          </>
+                        ) : commission.status === "approved" ? (
+                          <>
+                            <CheckCircle className="ml-1 h-3 w-3" />
+                            معتمدة
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="ml-1 h-3 w-3" />
+                            في الانتظار
+                          </>
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {commission.paid_at
+                        ? format(new Date(commission.paid_at), "yyyy-MM-dd", { locale: ar })
+                        : "-"
+                      }
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

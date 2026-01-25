@@ -1,0 +1,218 @@
+/**
+ * Database type exports for easier use throughout the application
+ * Re-exports Supabase generated types with convenient aliases
+ */
+
+import { Database } from '@/integrations/supabase/types';
+
+// Helper types for accessing table types
+export type Tables<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Row'];
+
+export type TablesInsert<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Insert'];
+
+export type TablesUpdate<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Update'];
+
+export type Enums<T extends keyof Database['public']['Enums']> =
+  Database['public']['Enums'][T];
+
+// ============================================================================
+// Core Entity Types
+// ============================================================================
+
+// Clients
+export type Client = Tables<'clients'>;
+export type ClientInsert = TablesInsert<'clients'>;
+export type ClientUpdate = TablesUpdate<'clients'>;
+
+// Client Deposits
+export type ClientDeposit = Tables<'client_deposits'>;
+export type ClientDepositInsert = TablesInsert<'client_deposits'>;
+export type ClientDepositUpdate = TablesUpdate<'client_deposits'>;
+
+// Withdrawal Schedules
+export type WithdrawalSchedule = Tables<'withdrawal_schedules'>;
+export type WithdrawalScheduleInsert = TablesInsert<'withdrawal_schedules'>;
+export type WithdrawalScheduleUpdate = TablesUpdate<'withdrawal_schedules'>;
+
+// Profiles
+export type Profile = Tables<'profiles'>;
+export type ProfileInsert = TablesInsert<'profiles'>;
+export type ProfileUpdate = TablesUpdate<'profiles'>;
+
+// User Roles
+export type UserRole = Tables<'user_roles'>;
+export type UserRoleInsert = TablesInsert<'user_roles'>;
+export type UserRoleUpdate = TablesUpdate<'user_roles'>;
+
+// User Permissions
+export type UserPermission = Tables<'user_permissions'>;
+export type UserPermissionInsert = TablesInsert<'user_permissions'>;
+export type UserPermissionUpdate = TablesUpdate<'user_permissions'>;
+
+// Team Messages
+export type TeamMessage = Tables<'team_messages'>;
+export type TeamMessageInsert = TablesInsert<'team_messages'>;
+export type TeamMessageUpdate = TablesUpdate<'team_messages'>;
+
+// Client Calls
+export type ClientCall = Tables<'client_calls'>;
+export type ClientCallInsert = TablesInsert<'client_calls'>;
+export type ClientCallUpdate = TablesUpdate<'client_calls'>;
+
+// Employee Targets
+export type EmployeeTarget = Tables<'employee_targets'>;
+export type EmployeeTargetInsert = TablesInsert<'employee_targets'>;
+export type EmployeeTargetUpdate = TablesUpdate<'employee_targets'>;
+
+// Audit Log
+export type AuditLog = Tables<'audit_log'>;
+export type AuditLogInsert = TablesInsert<'audit_log'>;
+export type AuditLogUpdate = TablesUpdate<'audit_log'>;
+
+// ============================================================================
+// Enum Types
+// ============================================================================
+
+export type AppRole = Enums<'app_role'>;
+export type Department = Enums<'department'>;
+export type PermissionCategory = Enums<'permission_category'>;
+
+// ============================================================================
+// Extended Types with Relations
+// ============================================================================
+
+/**
+ * Client with related deposits
+ */
+export type ClientWithDeposits = Client & {
+  client_deposits: ClientDeposit[];
+};
+
+/**
+ * Client deposit with withdrawal schedules
+ */
+export type ClientDepositWithWithdrawals = ClientDeposit & {
+  withdrawal_schedules: WithdrawalSchedule[];
+};
+
+/**
+ * Client with full details including deposits and withdrawal schedules
+ */
+export type ClientFullDetails = Client & {
+  client_deposits: ClientDepositWithWithdrawals[];
+  assigned_employee?: Profile;
+};
+
+/**
+ * Profile with user roles
+ */
+export type ProfileWithRoles = Profile & {
+  user_roles: UserRole[];
+};
+
+/**
+ * Profile with permissions
+ */
+export type ProfileWithPermissions = Profile & {
+  user_permissions: UserPermission[];
+};
+
+/**
+ * Employee target with profile information
+ */
+export type EmployeeTargetWithProfile = EmployeeTarget & {
+  profile: Profile;
+};
+
+/**
+ * Message with sender and recipient profiles
+ */
+export type TeamMessageWithProfiles = TeamMessage & {
+  sender: Profile;
+  recipient?: Profile;
+};
+
+// ============================================================================
+// Filter Types
+// ============================================================================
+
+export interface ClientFilters {
+  status?: string;
+  assigned_to?: string;
+  search?: string;
+}
+
+export interface DepositFilters {
+  client_id?: string;
+  status?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+export interface WithdrawalFilters {
+  status?: string;
+  due_date_from?: string;
+  due_date_to?: string;
+}
+
+export interface ProfileFilters {
+  department?: string;
+  is_active?: boolean;
+  search?: string;
+}
+
+export interface TargetFilters {
+  employee_id?: string;
+  target_type?: string;
+  month?: string;
+  status?: string;
+}
+
+export interface CallFilters {
+  called_by?: string;
+  call_status?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+export interface AuditFilters {
+  actor_user_id?: string;
+  action?: string;
+  target_table?: string;
+  date_from?: string;
+  date_to?: string;
+}
+
+// ============================================================================
+// Utility Types
+// ============================================================================
+
+/**
+ * Pagination parameters
+ */
+export interface PaginationParams {
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Sort parameters
+ */
+export interface SortParams {
+  column: string;
+  ascending: boolean;
+}
+
+/**
+ * Paginated response wrapper
+ */
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
