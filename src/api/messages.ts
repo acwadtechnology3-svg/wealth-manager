@@ -35,14 +35,7 @@ export const messagesApi = {
     try {
       let query = supabase
         .from('team_messages')
-        .select(`
-          *,
-          profiles!team_messages_sender_id_fkey(
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (filters?.userId) {
@@ -82,14 +75,7 @@ export const messagesApi = {
     try {
       const { data, error } = await supabase
         .from('team_messages')
-        .select(`
-          *,
-          profiles!team_messages_sender_id_fkey(
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
+        .select('*')
         .or(
           `and(sender_id.eq.${userId1},recipient_id.eq.${userId2}),and(sender_id.eq.${userId2},recipient_id.eq.${userId1})`
         )
@@ -111,14 +97,7 @@ export const messagesApi = {
     try {
       const { data, error } = await supabase
         .from('team_messages')
-        .select(`
-          *,
-          profiles!team_messages_sender_id_fkey(
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
+        .select('*')
         .is('recipient_id', null)
         .order('created_at', { ascending: true })
         .limit(limit);

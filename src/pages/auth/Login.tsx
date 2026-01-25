@@ -76,15 +76,7 @@ const Login = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">كلمة المرور</Label>
-                <Link
-                  to="/auth/forgot-password"
-                  className="text-xs text-primary hover:underline"
-                >
-                  نسيت كلمة المرور؟
-                </Link>
-              </div>
+              <Label htmlFor="password">كلمة المرور</Label>
               <div className="relative">
                 <Lock className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -97,6 +89,14 @@ const Login = () => {
                   required
                   dir="ltr"
                 />
+              </div>
+              <div className="flex justify-start">
+                <Link
+                  to="/auth/forgot-password"
+                  className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  نسيت كلمة المرور؟
+                </Link>
               </div>
             </div>
           </CardContent>

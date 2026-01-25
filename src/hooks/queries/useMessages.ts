@@ -156,30 +156,47 @@ export function useSendMessage() {
 
     // Optimistic update
     onMutate: async (newMessage) => {
+      const isGroupMessage = newMessage.recipient_id === null;
+      const listKey = queryKeys.messages.list({ isGroupMessage });
+      const conversationKey = !isGroupMessage && newMessage.recipient_id
+        ? queryKeys.messages.conversation(newMessage.sender_id, newMessage.recipient_id)
+        : null;
+
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.messages.lists() });
+      if (conversationKey) {
+        await queryClient.cancelQueries({ queryKey: conversationKey });
+      }
 
       // Snapshot previous value
-      const previousMessages = queryClient.getQueryData<TeamMessageWithProfile[]>(
-        queryKeys.messages.list({ isGroupMessage: newMessage.recipient_id === null })
-      );
+      const previousMessages = queryClient.getQueryData<TeamMessageWithProfile[]>(listKey);
+      const previousConversation = conversationKey
+        ? queryClient.getQueryData<TeamMessageWithProfile[]>(conversationKey)
+        : undefined;
+
+      const optimisticMessage: Partial<TeamMessageWithProfile> = {
+        ...newMessage,
+        id: `temp-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        is_read: false,
+      };
 
       // Optimistically update cache
       if (previousMessages) {
-        const optimisticMessage: Partial<TeamMessageWithProfile> = {
-          ...newMessage,
-          id: `temp-${Date.now()}`,
-          created_at: new Date().toISOString(),
-          is_read: false,
-        };
-
         queryClient.setQueryData(
-          queryKeys.messages.list({ isGroupMessage: newMessage.recipient_id === null }),
+          listKey,
           [...previousMessages, optimisticMessage as TeamMessageWithProfile]
         );
       }
 
-      return { previousMessages };
+      if (conversationKey) {
+        const nextConversation = previousConversation
+          ? [...previousConversation, optimisticMessage as TeamMessageWithProfile]
+          : [optimisticMessage as TeamMessageWithProfile];
+        queryClient.setQueryData(conversationKey, nextConversation);
+      }
+
+      return { previousMessages, previousConversation, conversationKey };
     },
 
     onError: (error, newMessage, context) => {
@@ -191,6 +208,17 @@ export function useSendMessage() {
         );
       }
 
+      if (context?.conversationKey) {
+        if (context.previousConversation) {
+          queryClient.setQueryData(
+            context.conversationKey,
+            context.previousConversation
+          );
+        } else {
+          queryClient.removeQueries({ queryKey: context.conversationKey });
+        }
+      }
+
       toast({
         title: 'خطأ',
         description: handleApiError(error),
@@ -198,9 +226,14 @@ export function useSendMessage() {
       });
     },
 
-    onSettled: () => {
+    onSettled: (_data, _error, variables) => {
       // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: queryKeys.messages.lists() });
+      if (variables?.recipient_id) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.messages.conversation(variables.sender_id, variables.recipient_id),
+        });
+      }
     },
   });
 }
