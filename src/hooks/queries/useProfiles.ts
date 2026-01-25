@@ -29,19 +29,10 @@ export function useProfiles(filters?: {
 }
 
 /**
- * Hook to fetch all employees (active profiles) with aggressive caching for chat
+ * Hook to fetch all employees (active profiles)
  */
 export function useEmployees() {
-  const { user } = useAuth();
-
-  return useQuery({
-    queryKey: queryKeys.profiles.list({ active: true }),
-    queryFn: () => profilesApi.list({ active: true }),
-    enabled: !!user,
-    staleTime: 1000 * 60 * 30, // 30 minutes - employees list doesn't change often
-    gcTime: 1000 * 60 * 60 * 2, // 2 hours - keep in memory for quick access
-    refetchOnMount: false, // Don't refetch if data is fresh
-  });
+  return useProfiles({ active: true });
 }
 
 /**
