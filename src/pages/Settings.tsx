@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   User,
   Lock,
@@ -22,8 +22,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { useUpdateProfile } from "@/hooks/queries/useProfiles";
 
 export default function Settings() {
+  const { user, profile, roles } = useAuth();
+  const updateProfile = useUpdateProfile();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
@@ -32,6 +39,38 @@ export default function Settings() {
     withdrawReminder: true,
     newClient: true,
   });
+
+  useEffect(() => {
+    const derivedName =
+      profile?.full_name ||
+      [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") ||
+      "";
+    setFullName(derivedName);
+    setEmail(user?.email || profile?.email || "");
+    setPhone(profile?.phone || "");
+  }, [profile, user?.email]);
+
+  const roleLabel = roles.length > 0
+    ? roles.join("، ")
+    : profile?.department || "";
+
+  const handleProfileSave = () => {
+    if (!user) return;
+
+    const trimmedName = fullName.trim();
+    const [firstName, ...rest] = trimmedName.split(/\s+/);
+    const lastName = rest.join(" ");
+
+    updateProfile.mutate({
+      userId: user.id,
+      updates: {
+        first_name: firstName || profile?.first_name || "",
+        last_name: lastName || profile?.last_name || "",
+        email: user?.email || profile?.email || "",
+        phone: phone.trim() ? phone.trim() : null,
+      },
+    });
+  };
 
   return (
     <MainLayout>
@@ -82,29 +121,40 @@ export default function Settings() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="fullName">الاسم الكامل</Label>
-                    <Input id="fullName" defaultValue="أحمد محمد" />
+                    <Input
+                      id="fullName"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">البريد الإلكتروني</Label>
-                    <Input id="email" type="email" defaultValue="ahmed@fis.com" />
+                    <Input id="email" type="email" value={email} disabled />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">رقم الهاتف</Label>
-                    <Input id="phone" defaultValue="01234567890" />
+                    <Input
+                      id="phone"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">الدور</Label>
-                    <Input id="role" defaultValue="مدير النظام" disabled />
+                    <Input id="role" value={roleLabel} disabled />
                   </div>
                 </div>
-                <Button className="gradient-primary">
+                <Button
+                  className="gradient-primary"
+                  onClick={handleProfileSave}
+                  disabled={updateProfile.isPending}
+                >
                   <Save className="ml-2 h-4 w-4" />
                   حفظ التغييرات
                 </Button>
               </CardContent>
             </Card>
           </TabsContent>
-
           {/* Security Tab */}
           <TabsContent value="security" className="mt-6">
             <Card>
@@ -308,3 +358,5 @@ export default function Settings() {
     </MainLayout>
   );
 }
+
+
