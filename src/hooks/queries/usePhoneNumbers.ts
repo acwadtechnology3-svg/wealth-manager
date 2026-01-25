@@ -2,7 +2,7 @@
  * React Query hooks for phone numbers operations
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tantml:invoke>';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { phoneNumbersApi } from '@/api/phoneNumbers';
 import type { BatchInsert, PhoneNumberInsert } from '@/api/phoneNumbers';
