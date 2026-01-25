@@ -10,6 +10,7 @@ import {
   Trash2,
   Eye,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,13 +41,49 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useEmployees, useProfileStats } from "@/hooks/queries/useProfiles";
 import { useClients } from "@/hooks/queries/useClients";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+
+type AppRole = "super_admin" | "admin" | "hr_manager" | "hr_officer" | "tele_sales" | "accountant" | "support";
+type Department = "admin" | "hr" | "tele_sales" | "finance" | "support";
+
+const roleLabels: Record<AppRole, string> = {
+  super_admin: "سوبر أدمن",
+  admin: "أدمن",
+  hr_manager: "مدير HR",
+  hr_officer: "موظف HR",
+  tele_sales: "تيلي سيلز",
+  accountant: "محاسب",
+  support: "دعم فني",
+};
+
+const departmentLabels: Record<Department, string> = {
+  admin: "الإدارة",
+  hr: "الموارد البشرية",
+  tele_sales: "المبيعات",
+  finance: "المالية",
+  support: "الدعم الفني",
+};
 
 export default function Employees() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [newEmployee, setNewEmployee] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    phone: "",
+    department: "support" as Department,
+    role: "support" as AppRole,
+  });
+  const { toast } = useToast();
+  const { isSuperAdmin } = useAuth();
 
   // Fetch employees and stats
   const { data: employees = [], isLoading, error, refetch } = useEmployees();
@@ -88,6 +125,87 @@ export default function Employees() {
 
     return metrics;
   }, [allClients]);
+
+  const handleCreateEmployee = async () => {
+    if (!newEmployee.firstName || !newEmployee.lastName || !newEmployee.email || !newEmployee.password) {
+      toast({
+        title: "خطأ",
+        description: "يرجى ملء جميع الحقول المطلوبة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newEmployee.email,
+        password: newEmployee.password,
+        options: {
+          emailRedirectTo: window.location.origin,
+          data: {
+            first_name: newEmployee.firstName,
+            last_name: newEmployee.lastName,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      if (authData.user) {
+        const fullName = `${newEmployee.firstName} ${newEmployee.lastName}`.trim();
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            phone: newEmployee.phone || null,
+            department: newEmployee.department,
+            full_name: fullName,
+          })
+          .eq("user_id", authData.user.id);
+
+        if (profileError) {
+          console.error("Profile update error:", profileError);
+        }
+
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({
+            user_id: authData.user.id,
+            role: newEmployee.role,
+          });
+
+        if (roleError) {
+          console.error("Role insert error:", roleError);
+        }
+
+        toast({
+          title: "تم بنجاح",
+          description: "تم إضافة الموظف بنجاح",
+        });
+
+        setIsAddDialogOpen(false);
+        setNewEmployee({
+          firstName: "",
+          lastName: "",
+          email: "",
+          password: "",
+          phone: "",
+          department: "support",
+          role: "support",
+        });
+        refetch();
+      }
+    } catch (err: any) {
+      toast({
+        title: "خطأ",
+        description: err?.message || "فشل في إضافة الموظف",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Show loading state
   if (isLoading) {
@@ -176,18 +294,104 @@ export default function Employees() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">الاسم الكامل</Label>
-                  <Input id="name" placeholder="أدخل اسم الموظف" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="firstName">الاسم الأول *</Label>
+                    <Input
+                      id="firstName"
+                      placeholder="أحمد"
+                      value={newEmployee.firstName}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, firstName: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="lastName">الاسم الأخير *</Label>
+                    <Input
+                      id="lastName"
+                      placeholder="محمد"
+                      value={newEmployee.lastName}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, lastName: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="email">البريد الإلكتروني</Label>
-                    <Input id="email" type="email" placeholder="email@fis.com" />
+                    <Label htmlFor="email">البريد الإلكتروني *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="email@fis.com"
+                      value={newEmployee.email}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                      dir="ltr"
+                    />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="phone">رقم الهاتف</Label>
-                    <Input id="phone" placeholder="01xxxxxxxxx" />
+                    <Input
+                      id="phone"
+                      placeholder="01xxxxxxxxx"
+                      value={newEmployee.phone}
+                      onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="password">كلمة المرور *</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newEmployee.password}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })}
+                    dir="ltr"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label>القسم</Label>
+                    <Select
+                      value={newEmployee.department}
+                      onValueChange={(value: Department) =>
+                        setNewEmployee({ ...newEmployee, department: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(departmentLabels).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>الصلاحية</Label>
+                    <Select
+                      value={newEmployee.role}
+                      onValueChange={(value: AppRole) =>
+                        setNewEmployee({ ...newEmployee, role: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(roleLabels).map(([value, label]) => (
+                          <SelectItem
+                            key={value}
+                            value={value}
+                            disabled={value === "super_admin" && !isSuperAdmin()}
+                          >
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="grid gap-2">
@@ -199,7 +403,9 @@ export default function Employees() {
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   إلغاء
                 </Button>
-                <Button className="gradient-primary" disabled>حفظ</Button>
+                <Button className="gradient-primary" onClick={handleCreateEmployee} disabled={submitting}>
+                  {submitting ? "جارٍ الحفظ..." : "حفظ"}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
