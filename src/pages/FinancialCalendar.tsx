@@ -119,12 +119,12 @@ export default function FinancialCalendar() {
       let eventStatus: "done" | "upcoming" | "late" = "upcoming";
       if (withdrawal.status === "completed") {
         eventStatus = "done";
-      } else if (withdrawal.status === "overdue") {
+      } else if (withdrawal.status === "overdue" || withdrawal.due_date < new Date().toISOString().split("T")[0]) {
         eventStatus = "late";
       }
 
       return {
-        date: withdrawal.scheduled_date,
+        date: withdrawal.due_date,
         type: "withdraw" as const,
         client: clientName,
         amount: withdrawal.amount,
@@ -188,7 +188,7 @@ export default function FinancialCalendar() {
     try {
       await createWithdrawal.mutateAsync({
         deposit_id: selectedDepositId,
-        scheduled_date: newEventDate,
+        due_date: newEventDate,
         amount: parseFloat(newEventAmount),
         status: 'upcoming',
       });

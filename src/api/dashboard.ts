@@ -140,7 +140,7 @@ export const dashboardApi = {
         supabase
           .from('withdrawal_schedules')
           .select('amount, status')
-          .gte('scheduled_date', firstDayOfMonth)
+          .gte('due_date', firstDayOfMonth)
           .eq('status', 'completed'),
       ]);
 
@@ -265,7 +265,7 @@ export const dashboardApi = {
         .select(`
           id,
           amount,
-          scheduled_date,
+          due_date,
           status,
           deposit_id,
           client_deposits!inner(
@@ -275,10 +275,10 @@ export const dashboardApi = {
             )
           )
         `)
-        .gte('scheduled_date', today)
-        .lte('scheduled_date', nextMonthStr)
-        .eq('status', 'pending')
-        .order('scheduled_date', { ascending: true })
+        .gte('due_date', today)
+        .lte('due_date', nextMonthStr)
+        .eq('status', 'upcoming')
+        .order('due_date', { ascending: true })
         .limit(limit);
 
       if (error) throw new ApiError(error.message, error.code, error.details);
@@ -287,7 +287,7 @@ export const dashboardApi = {
         id: w.id,
         clientName: w.client_deposits?.clients?.name || 'غير معروف',
         amount: w.amount,
-        scheduledDate: w.scheduled_date,
+        scheduledDate: w.due_date,
         status: w.status,
         depositId: w.deposit_id,
       }));

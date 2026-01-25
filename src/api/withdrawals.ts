@@ -42,7 +42,7 @@ export const withdrawalsApi = {
       let query = supabase
         .from('withdrawal_schedules')
         .select('*')
-        .order('scheduled_date', { ascending: true });
+        .order('due_date', { ascending: true });
 
       if (filters?.status) {
         query = query.eq('status', filters.status);
@@ -53,11 +53,11 @@ export const withdrawalsApi = {
       }
 
       if (filters?.startDate) {
-        query = query.gte('scheduled_date', filters.startDate);
+        query = query.gte('due_date', filters.startDate);
       }
 
       if (filters?.endDate) {
-        query = query.lte('scheduled_date', filters.endDate);
+        query = query.lte('due_date', filters.endDate);
       }
 
       const { data, error } = await query;
@@ -92,18 +92,18 @@ export const withdrawalsApi = {
             )
           )
         `)
-        .order('scheduled_date', { ascending: true });
+        .order('due_date', { ascending: true });
 
       if (filters?.status) {
         query = query.eq('status', filters.status);
       }
 
       if (filters?.startDate) {
-        query = query.gte('scheduled_date', filters.startDate);
+        query = query.gte('due_date', filters.startDate);
       }
 
       if (filters?.endDate) {
-        query = query.lte('scheduled_date', filters.endDate);
+        query = query.lte('due_date', filters.endDate);
       }
 
       const { data, error } = await query;
@@ -148,7 +148,7 @@ export const withdrawalsApi = {
       const futureDateStr = futureDate.toISOString().split('T')[0];
 
       return await this.listWithClients({
-        status: 'pending',
+        status: 'upcoming',
         startDate: today,
         endDate: futureDateStr,
       });
@@ -178,9 +178,9 @@ export const withdrawalsApi = {
             )
           )
         `)
-        .eq('status', 'pending')
-        .lt('scheduled_date', today)
-        .order('scheduled_date', { ascending: true });
+        .in('status', ['upcoming', 'overdue'])
+        .lt('due_date', today)
+        .order('due_date', { ascending: true });
 
       if (error) throw new ApiError(error.message, error.code, error.details);
       return (data || []) as WithdrawalWithClient[];
@@ -199,7 +199,7 @@ export const withdrawalsApi = {
         .from('withdrawal_schedules')
         .select('*')
         .eq('deposit_id', depositId)
-        .order('scheduled_date', { ascending: true });
+        .order('due_date', { ascending: true });
 
       if (error) throw new ApiError(error.message, error.code, error.details);
       return data || [];
@@ -259,7 +259,7 @@ export const withdrawalsApi = {
     try {
       const updates: WithdrawalScheduleUpdate = {
         status: 'completed',
-        paid_date: paidDate || new Date().toISOString().split('T')[0],
+        completed_date: paidDate || new Date().toISOString().split('T')[0],
       };
 
       return await this.update(id, updates);
@@ -270,11 +270,11 @@ export const withdrawalsApi = {
   },
 
   /**
-   * Mark withdrawal as cancelled
+   * Cancel withdrawal schedule by removing it
    */
-  async markCancelled(id: string): Promise<WithdrawalSchedule> {
+  async markCancelled(id: string): Promise<void> {
     try {
-      return await this.update(id, { status: 'cancelled' });
+      await this.delete(id);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError('فشل في إلغاء موعد السحب', 'UNKNOWN_ERROR');
@@ -312,7 +312,7 @@ export const withdrawalsApi = {
     try {
       const { data, error } = await supabase
         .from('withdrawal_schedules')
-        .select('status, amount, scheduled_date');
+        .select('status, amount, due_date');
 
       if (error) throw new ApiError(error.message, error.code, error.details);
 
@@ -321,14 +321,14 @@ export const withdrawalsApi = {
 
       return {
         total: schedules.length,
-        pending: schedules.filter(w => w.status === 'pending').length,
+        pending: schedules.filter(w => w.status === 'upcoming').length,
         completed: schedules.filter(w => w.status === 'completed').length,
         overdue: schedules.filter(
-          w => w.status === 'pending' && w.scheduled_date < today
+          w => w.status === 'overdue' || (w.status === 'upcoming' && w.due_date < today)
         ).length,
         totalAmount: schedules.reduce((sum, w) => sum + w.amount, 0),
         pendingAmount: schedules
-          .filter(w => w.status === 'pending')
+          .filter(w => w.status === 'upcoming')
           .reduce((sum, w) => sum + w.amount, 0),
       };
     } catch (error) {

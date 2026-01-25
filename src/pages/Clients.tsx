@@ -89,6 +89,13 @@ export default function Clients() {
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
+  const formatCreatedAt = (value?: string | null) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleDateString("ar-EG");
+  };
+
   // Prepare filters for the query
   const filters = useMemo(() => {
     const f: { status?: string; assignedTo?: string; search?: string } = {};
@@ -277,7 +284,6 @@ export default function Clients() {
                 <TableRow>
                   <TableHead className="text-right">الكود</TableHead>
                   <TableHead className="text-right">العميل</TableHead>
-                  <TableHead className="text-right">البريد الإلكتروني</TableHead>
                   <TableHead className="text-right">تاريخ الإنشاء</TableHead>
                   <TableHead className="text-right">الحالة</TableHead>
                   <TableHead className="w-10"></TableHead>
@@ -308,10 +314,7 @@ export default function Clients() {
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {client.email || "-"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(client.created_at).toLocaleDateString("ar-EG")}
+                        {formatCreatedAt(client.created_at)}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -408,3 +411,4 @@ export default function Clients() {
     </MainLayout>
   );
 }
+

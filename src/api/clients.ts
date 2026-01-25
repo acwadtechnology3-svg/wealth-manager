@@ -318,9 +318,9 @@ export const clientsApi = {
 
         schedules.push({
           deposit_id: depositData.id,
-          scheduled_date: scheduledDate.toISOString().split('T')[0],
+          due_date: scheduledDate.toISOString().split('T')[0],
           amount: monthlyProfit,
-          status: 'pending',
+          status: 'upcoming',
         });
       }
 
