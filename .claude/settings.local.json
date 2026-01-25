@@ -3,7 +3,23 @@
     "allow": [
       "Bash(git remote set-url:*)",
       "Bash(git restore:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__list_extensions",
+      "mcp__supabase__list_edge_functions",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__get_publishable_keys",
+      "mcp__supabase__deploy_edge_function",
+      "mcp__supabase__apply_migration",
+      "mcp__supabase__get_project_url"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }

@@ -20,8 +20,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { clientsFullData, adminNotifications, globalAuditLogs } from "@/data/adminMockData";
-import { employees } from "@/data/hrMockData";
+import { useClients, useClientStats } from "@/hooks/queries/useClients";
+import { useRecentAuditLogs } from "@/hooks/queries/useAuditLogs";
+import { useProfiles } from "@/hooks/queries/useProfiles";
 
 const statusConfig = {
   active: { label: "نشط", className: "bg-success/10 text-success border-success/20" },
@@ -33,19 +34,24 @@ const statusConfig = {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<typeof clientsFullData>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
+
+  // Fetch real data from API
+  const { data: allClients = [] } = useClients();
+  const { data: clientStats } = useClientStats();
+  const { data: employees = [] } = useProfiles({ active: true });
+  const { data: auditLogs = [] } = useRecentAuditLogs(10);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (query.trim().length >= 2) {
-      const results = clientsFullData.filter(
+      const lowerQuery = query.toLowerCase();
+      const results = allClients.filter(
         (client) =>
-          client.name.includes(query) ||
+          client.name.toLowerCase().includes(lowerQuery) ||
           client.phone.includes(query) ||
-          client.code.includes(query) ||
-          client.deposits.some((d) => d.depositNumber.includes(query)) ||
-          client.assignedEmployee.name.includes(query)
+          client.code.includes(query)
       );
       setSearchResults(results);
       setShowResults(true);
@@ -55,11 +61,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const unreadNotifications = adminNotifications.filter((n) => !n.isRead);
-  const lateClients = clientsFullData.filter((c) => c.status === "late");
-  const recentAuditLogs = globalAuditLogs
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 5);
+  const lateClients = allClients.filter((c) => c.status === "late");
+  const recentAuditLogs = auditLogs.slice(0, 5);
 
   const adminModules = [
     {
@@ -76,7 +79,7 @@ export default function AdminDashboard() {
       icon: Shield,
       href: "/admin/roles",
       color: "bg-success/10 text-success",
-      stats: "5 أدوار",
+      stats: "أدوار مختلفة",
     },
     {
       title: "سجل العمليات",
@@ -84,7 +87,7 @@ export default function AdminDashboard() {
       icon: Activity,
       href: "/admin/audit-logs",
       color: "bg-warning/10 text-warning",
-      stats: `${globalAuditLogs.length} عملية`,
+      stats: `${auditLogs.length} عملية`,
     },
     {
       title: "التقارير الإدارية",
@@ -92,7 +95,7 @@ export default function AdminDashboard() {
       icon: FileText,
       href: "/admin/reports",
       color: "bg-secondary/10 text-secondary-foreground",
-      stats: "5 تقارير",
+      stats: "تقارير",
     },
   ];
 
@@ -108,14 +111,6 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-              {unreadNotifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
-                  {unreadNotifications.length}
-                </span>
-              )}
-            </Button>
             <Button variant="outline" size="icon">
               <Settings className="h-4 w-4" />
             </Button>
@@ -201,7 +196,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">إجمالي العملاء</p>
-                  <p className="text-2xl font-bold">{clientsFullData.length}</p>
+                  <p className="text-2xl font-bold">{allClients.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -215,7 +210,7 @@ export default function AdminDashboard() {
                 <div>
                   <p className="text-sm text-muted-foreground">إجمالي الاستثمارات</p>
                   <p className="text-2xl font-bold">
-                    {clientsFullData.reduce((acc, c) => acc + c.totalInvestment, 0).toLocaleString()} ج.م
+                    {clientStats?.totalInvestment?.toLocaleString() || '0'} ج.م
                   </p>
                 </div>
               </div>
@@ -230,7 +225,7 @@ export default function AdminDashboard() {
                 <div>
                   <p className="text-sm text-muted-foreground">الموظفين النشطين</p>
                   <p className="text-2xl font-bold">
-                    {employees.filter((e) => e.status === "active").length}
+                    {employees.length}
                   </p>
                 </div>
               </div>
@@ -322,18 +317,20 @@ export default function AdminDashboard() {
                           {log.action === "delete" && "حذف"}
                           {log.action === "view" && "عرض"}
                           {" "}
-                          {log.entityType === "client" && "عميل"}
-                          {log.entityType === "employee" && "موظف"}
-                          {log.entityType === "transaction" && "معاملة"}
-                          {log.entityType === "system" && "إعدادات النظام"}
+                          {log.target_table}
                         </p>
-                        {log.field && (
+                        {log.field_name && (
                           <p className="text-xs text-muted-foreground">
-                            {log.field}: {log.oldValue} ← {log.newValue}
+                            {log.field_name}: {log.old_value} ← {log.new_value}
+                          </p>
+                        )}
+                        {log.reason && (
+                          <p className="text-xs text-muted-foreground">
+                            السبب: {log.reason}
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
-                          {log.performedBy.name} • {new Date(log.timestamp).toLocaleDateString("ar-EG")}
+                          {new Date(log.created_at).toLocaleDateString("ar-EG")}
                         </p>
                       </div>
                     </div>
@@ -343,48 +340,6 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* Notifications */}
-          <Card className="animate-slide-up">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="h-5 w-5 text-primary" />
-                التنبيهات
-                {unreadNotifications.length > 0 && (
-                  <Badge variant="destructive" className="mr-2">
-                    {unreadNotifications.length} جديد
-                  </Badge>
-                )}
-              </CardTitle>
-              <CardDescription>التنبيهات والإشعارات الهامة</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[300px]">
-                <div className="space-y-3">
-                  {adminNotifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={cn(
-                        "p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors",
-                        !notification.isRead && "bg-primary/5 border-primary/20"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        {!notification.isRead && (
-                          <span className="h-2 w-2 rounded-full bg-primary" />
-                        )}
-                        <p className="font-medium text-sm">{notification.title}</p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{notification.message}</p>
-                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date(notification.createdAt).toLocaleDateString("ar-EG")}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </MainLayout>
