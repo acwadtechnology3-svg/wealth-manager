@@ -4,6 +4,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ApiError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
 const DOCUMENTS_BUCKET = 'employee-documents';
 const SIGNED_URL_TTL_SECONDS = 60 * 10;
@@ -125,7 +126,7 @@ export const documentsApi = {
     if (!path || isHttpUrl(path)) return;
     const { error } = await supabase.storage.from(DOCUMENTS_BUCKET).remove([path]);
     if (error) {
-      console.warn('Failed to remove document file from storage:', error.message);
+      logger.warn('Failed to remove document file from storage', { error: error.message, path });
     }
   },
 
@@ -236,7 +237,7 @@ export const documentsApi = {
         .maybeSingle();
 
       if (fetchError) {
-        console.warn('Failed to fetch document before delete:', fetchError.message);
+        logger.warn('Failed to fetch document before delete', { error: fetchError.message, documentId: id });
       }
 
       const { error } = await supabase

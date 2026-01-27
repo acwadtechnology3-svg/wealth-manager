@@ -1,4 +1,4 @@
-/**
+﻿/**
  * API functions for phone numbers operations
  */
 
@@ -32,7 +32,7 @@ export interface BatchInsert {
 export interface PhoneNumberInsert {
   batch_id: string;
   phone_number: string;
-  assigned_to: string;
+  assigned_to: string | null;
   assigned_employee_name?: string;
 }
 
@@ -53,7 +53,7 @@ export const phoneNumbersApi = {
         .single();
 
       if (batchError) throw new ApiError(batchError.message, batchError.code, batchError.details);
-      if (!batchData) throw new ApiError('فشل في إنشاء المجموعة', 'CREATE_FAILED');
+      if (!batchData) throw new ApiError('ÙØ´Ù„ ÙÙŠ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø©', 'CREATE_FAILED');
 
       // Insert phone numbers in batches of 1000
       const batchSize = 1000;
@@ -77,7 +77,7 @@ export const phoneNumbersApi = {
       return batchData as PhoneNumberBatch;
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('فشل في رفع الأرقام', 'UNKNOWN_ERROR');
+      throw new ApiError('ÙØ´Ù„ ÙÙŠ Ø±ÙØ¹ Ø§Ù„Ø£Ø±Ù‚Ø§Ù…', 'UNKNOWN_ERROR');
     }
   },
 
@@ -101,7 +101,7 @@ export const phoneNumbersApi = {
       return (data || []) as PhoneNumberBatchWithDetails[];
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('فشل في تحميل المجموعات', 'UNKNOWN_ERROR');
+      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø§Øª', 'UNKNOWN_ERROR');
     }
   },
 
@@ -127,7 +127,7 @@ export const phoneNumbersApi = {
       return (data || []) as PhoneNumberWithAssignee[];
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('فشل في تحميل الأرقام', 'UNKNOWN_ERROR');
+      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø£Ø±Ù‚Ø§Ù…', 'UNKNOWN_ERROR');
     }
   },
 
@@ -153,10 +153,294 @@ export const phoneNumbersApi = {
       return (data || []) as PhoneNumberWithAssignee[];
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('فشل في تحميل الأرقام المخصصة', 'UNKNOWN_ERROR');
+      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø£Ø±Ù‚Ø§Ù… Ø§Ù„Ù…Ø®ØµØµØ©', 'UNKNOWN_ERROR');
     }
   },
 
+  /**
+   * Assign phone numbers randomly across employees
+   */
+  async assignPhoneNumbersRandom(
+    batchId: string,
+    employeeIds: string[],
+    options?: { dueDays?: number; priority?: string }
+  ): Promise<{ assigned: number; perEmployee: Record<string, number> }> {
+    try {
+      if (employeeIds.length === 0) {
+        return { assigned: 0, perEmployee: {} };
+      }
+
+      const { data, error } = await supabase
+        .from('phone_numbers')
+        .select('id')
+        .eq('batch_id', batchId)
+        .is('assigned_to', null);
+
+      if (error) throw new ApiError(error.message, error.code, error.details);
+
+      const unassigned = data || [];
+      if (unassigned.length === 0) {
+        return { assigned: 0, perEmployee: {} };
+      }
+
+      const dueDays = options?.dueDays ?? 7;
+      const dueDate = new Date(Date.now() + dueDays * 24 * 60 * 60 * 1000).toISOString();
+      const priority = options?.priority ?? 'medium';
+
+      const perEmployee: Record<string, number> = {};
+      const updates = unassigned.map((row, index) => {
+        const employeeId = employeeIds[index % employeeIds.length];
+        perEmployee[employeeId] = (perEmployee[employeeId] ?? 0) + 1;
+        return {
+          id: row.id,
+          assigned_to: employeeId,
+          due_date: dueDate,
+          priority,
+        };
+      });
+
+      const chunkSize = 100;
+      for (let i = 0; i < updates.length; i += chunkSize) {
+        const chunk = updates.slice(i, i + chunkSize);
+        const { error: updateError } = await supabase
+          .from('phone_numbers')
+          .upsert(chunk, { onConflict: 'id' });
+
+        if (updateError) throw new ApiError(updateError.message, updateError.code, updateError.details);
+      }
+
+      return { assigned: updates.length, perEmployee };
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError('فشل في توزيع الأرقام', 'UNKNOWN_ERROR');
+    }
+  },
+
+  /**
+   * Assign specific phone numbers to specific employees
+   */
+  async assignPhoneNumbersTargeted(
+    batchId: string,
+    assignments: Array<{ phoneNumberId: string; employeeId: string }>,
+    options?: { dueDays?: number; priority?: string }
+  ): Promise<{ assigned: number }> {
+    try {
+      if (assignments.length === 0) {
+        return { assigned: 0 };
+      }
+
+      const ids = assignments.map(item => item.phoneNumberId);
+      const { data: existing, error: existingError } = await supabase
+        .from('phone_numbers')
+        .select('id')
+        .eq('batch_id', batchId)
+        .in('id', ids);
+
+      if (existingError) throw new ApiError(existingError.message, existingError.code, existingError.details);
+
+      const validIds = new Set((existing || []).map(row => row.id));
+      const validAssignments = assignments.filter(item => validIds.has(item.phoneNumberId));
+
+      if (validAssignments.length === 0) {
+        return { assigned: 0 };
+      }
+
+      const dueDays = options?.dueDays ?? 7;
+      const dueDate = new Date(Date.now() + dueDays * 24 * 60 * 60 * 1000).toISOString();
+      const priority = options?.priority ?? 'medium';
+
+      const updates = validAssignments.map(item => ({
+        id: item.phoneNumberId,
+        assigned_to: item.employeeId,
+        due_date: dueDate,
+        priority,
+      }));
+
+      const chunkSize = 100;
+      for (let i = 0; i < updates.length; i += chunkSize) {
+        const chunk = updates.slice(i, i + chunkSize);
+        const { error: updateError } = await supabase
+          .from('phone_numbers')
+          .upsert(chunk, { onConflict: 'id' });
+
+        if (updateError) throw new ApiError(updateError.message, updateError.code, updateError.details);
+      }
+
+      return { assigned: updates.length };
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError('فشل في تعيين الأرقام', 'UNKNOWN_ERROR');
+    }
+  },
+
+  /**
+   * Get task calendar data for an employee
+   */
+  async getEmployeeTaskCalendar(
+    employeeId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<
+    Array<{
+      date: string;
+      tasks: PhoneNumber[];
+      counts: { pending: number; inProgress: number; completed: number };
+    }>
+  > {
+    try {
+      const { data, error } = await supabase
+        .from('phone_numbers')
+        .select('*')
+        .eq('assigned_to', employeeId)
+        .gte('due_date', startDate)
+        .lte('due_date', endDate)
+        .order('due_date', { ascending: true });
+
+      if (error) throw new ApiError(error.message, error.code, error.details);
+
+      const tasks = (data || []) as PhoneNumber[];
+      const grouped = new Map<
+        string,
+        { date: string; tasks: PhoneNumber[]; counts: { pending: number; inProgress: number; completed: number } }
+      >();
+
+      tasks.forEach(task => {
+        if (!task.due_date) return;
+        const dateKey = task.due_date.split('T')[0];
+        if (!grouped.has(dateKey)) {
+          grouped.set(dateKey, {
+            date: dateKey,
+            tasks: [],
+            counts: { pending: 0, inProgress: 0, completed: 0 },
+          });
+        }
+        const entry = grouped.get(dateKey);
+        if (!entry) return;
+        entry.tasks.push(task);
+        if (task.call_status === 'pending') entry.counts.pending += 1;
+        if (task.call_status === 'in_progress') entry.counts.inProgress += 1;
+        if (task.call_status === 'completed') entry.counts.completed += 1;
+      });
+
+      return Array.from(grouped.values()).sort((a, b) => a.date.localeCompare(b.date));
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError('فشل في تحميل تقويم المهام', 'UNKNOWN_ERROR');
+    }
+  },
+
+  /**
+   * Get upcoming tasks for an employee
+   */
+  async getUpcomingTasks(employeeId: string, limit: number = 10): Promise<PhoneNumber[]> {
+    try {
+      const { data, error } = await supabase
+        .from('phone_numbers')
+        .select('*')
+        .eq('assigned_to', employeeId)
+        .in('call_status', ['pending', 'in_progress'])
+        .order('due_date', { ascending: true, nullsFirst: false })
+        .limit(limit);
+
+      if (error) throw new ApiError(error.message, error.code, error.details);
+      return (data || []) as PhoneNumber[];
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError('فشل في تحميل المهام القادمة', 'UNKNOWN_ERROR');
+    }
+  },
+
+  /**
+   * Get task statistics
+   */
+  async getTaskStats(employeeId?: string): Promise<{
+    total: number;
+    pending: number;
+    inProgress: number;
+    completed: number;
+    overdue: number;
+    completedToday: number;
+  }> {
+    try {
+      let query = supabase
+        .from('phone_numbers')
+        .select('call_status, due_date, completed_at');
+
+      if (employeeId) {
+        query = query.eq('assigned_to', employeeId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw new ApiError(error.message, error.code, error.details);
+
+      const tasks = (data || []) as Array<{
+        call_status: string | null;
+        due_date: string | null;
+        completed_at: string | null;
+      }>;
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      const pending = tasks.filter(task => task.call_status === 'pending').length;
+      const inProgress = tasks.filter(task => task.call_status === 'in_progress').length;
+      const completed = tasks.filter(task => task.call_status === 'completed').length;
+      const overdue = tasks.filter(task => {
+        if (!task.due_date) return false;
+        if (task.call_status === 'completed') return false;
+        return new Date(task.due_date) < todayStart;
+      }).length;
+      const completedToday = tasks.filter(task => {
+        if (task.call_status !== 'completed' || !task.completed_at) return false;
+        const completedAt = new Date(task.completed_at);
+        return completedAt >= todayStart && completedAt <= todayEnd;
+      }).length;
+
+      return {
+        total: tasks.length,
+        pending,
+        inProgress,
+        completed,
+        overdue,
+        completedToday,
+      };
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError('فشل في تحميل إحصائيات المهام', 'UNKNOWN_ERROR');
+    }
+  },
+
+  /**
+   * Update task status and notes
+   */
+  async updateTaskStatus(
+    id: string,
+    updates: { call_status?: string; notes?: string; completed_at?: string }
+  ): Promise<PhoneNumber> {
+    try {
+      const payload = { ...updates };
+      if (payload.call_status === 'completed' && !payload.completed_at) {
+        payload.completed_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from('phone_numbers')
+        .update(payload)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw new ApiError(error.message, error.code, error.details);
+      if (!data) throw new ApiError('الرقم غير موجود', 'NOT_FOUND');
+      return data as PhoneNumber;
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError('فشل في تحديث حالة المهمة', 'UNKNOWN_ERROR');
+    }
+  },
   /**
    * Update phone number status and notes
    */
@@ -177,11 +461,11 @@ export const phoneNumbersApi = {
         .single();
 
       if (error) throw new ApiError(error.message, error.code, error.details);
-      if (!data) throw new ApiError('الرقم غير موجود', 'NOT_FOUND');
+      if (!data) throw new ApiError('Ø§Ù„Ø±Ù‚Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯', 'NOT_FOUND');
       return data as PhoneNumber;
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('فشل في تحديث الرقم', 'UNKNOWN_ERROR');
+      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø±Ù‚Ù…', 'UNKNOWN_ERROR');
     }
   },
 
@@ -198,7 +482,7 @@ export const phoneNumbersApi = {
       if (error) throw new ApiError(error.message, error.code, error.details);
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('فشل في حذف المجموعة', 'UNKNOWN_ERROR');
+      throw new ApiError('ÙØ´Ù„ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø©', 'UNKNOWN_ERROR');
     }
   },
 
@@ -236,7 +520,8 @@ export const phoneNumbersApi = {
       };
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('فشل في تحميل الإحصائيات', 'UNKNOWN_ERROR');
+      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª', 'UNKNOWN_ERROR');
     }
   },
 };
+

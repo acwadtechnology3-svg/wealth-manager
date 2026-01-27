@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { PermissionsProvider } from "@/hooks/usePermissions";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { queryClient } from "@/lib/queryClient";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 // Public Pages
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -23,6 +24,7 @@ import Chat from "./pages/Chat";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import MyTasks from "./pages/MyTasks";
 // HR Pages
 import HRDashboard from "./pages/hr/HRDashboard";
 import HREmployees from "./pages/hr/HREmployees";
@@ -42,16 +44,18 @@ import TeamChat from "./pages/admin/TeamChat";
 import WorkSchedules from "./pages/admin/WorkSchedules";
 import PhoneNumbers from "./pages/admin/PhoneNumbers";
 import PaymentMethods from "./pages/admin/PaymentMethods";
+import TaskManagement from "./pages/admin/TaskManagement";
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <PermissionsProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <PermissionsProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
             {/* Auth Routes */}
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/register" element={<Register />} />
@@ -68,6 +72,7 @@ const App = () => (
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
             
             {/* HR Routes - Require HR Access */}
             <Route path="/hr" element={<ProtectedRoute requireHR><HRDashboard /></ProtectedRoute>} />
@@ -87,16 +92,25 @@ const App = () => (
             <Route path="/admin/targets" element={<ProtectedRoute requireAdmin><EmployeeTargets /></ProtectedRoute>} />
             <Route path="/admin/team-chat" element={<ProtectedRoute requireAdmin><TeamChat /></ProtectedRoute>} />
             <Route path="/admin/work-schedules" element={<ProtectedRoute requireAdmin><WorkSchedules /></ProtectedRoute>} />
-            <Route path="/admin/phone-numbers" element={<ProtectedRoute requireAdmin><PhoneNumbers /></ProtectedRoute>} />
+            <Route
+              path="/admin/phone-numbers"
+              element={
+                <ProtectedRoute requiredRoles={["super_admin", "admin", "tele_sales", "support"]}>
+                  <PhoneNumbers />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/admin/payment-methods" element={<ProtectedRoute requireAdmin><PaymentMethods /></ProtectedRoute>} />
+            <Route path="/admin/tasks" element={<ProtectedRoute requireAdmin><TaskManagement /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-        </PermissionsProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+            </Routes>
+          </BrowserRouter>
+          </PermissionsProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

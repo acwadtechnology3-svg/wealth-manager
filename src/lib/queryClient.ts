@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query';
+import { logger } from '@/lib/logger';
 
 /**
  * QueryClient configuration for React Query v5
@@ -24,7 +25,7 @@ export const queryClient = new QueryClient({
       retry: false, // Don't retry mutations automatically to avoid duplicate operations
       onError: (error) => {
         // Global error handling - can be customized per mutation
-        console.error('Mutation error:', error);
+        logger.error('Mutation error', { error });
       },
     },
   },

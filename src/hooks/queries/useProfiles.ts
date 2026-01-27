@@ -14,17 +14,20 @@ import { handleApiError } from '@/lib/errors';
 /**
  * Hook to fetch list of profiles (employees) with optional filters
  */
-export function useProfiles(filters?: {
-  role?: string;
-  department?: string;
-  active?: boolean;
-}) {
+export function useProfiles(
+  filters?: {
+    role?: string;
+    department?: string;
+    active?: boolean;
+  },
+  options?: { enabled?: boolean }
+) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: queryKeys.profiles.list(filters),
     queryFn: () => profilesApi.list(filters),
-    enabled: !!user,
+    enabled: !!user && (options?.enabled ?? true),
   });
 }
 

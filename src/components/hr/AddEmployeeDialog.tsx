@@ -70,7 +70,7 @@ export function AddEmployeeDialog() {
   const watchedType = form.watch("employmentType");
 
   const onSubmit = (data: EmployeeFormData) => {
-    console.log("تم إضافة موظف:", data);
+    // Successfully added employee - this is informational only
     toast({
       title: "تم إضافة الموظف بنجاح",
       description: `تم تسجيل الموظف ${data.name} في النظام`,

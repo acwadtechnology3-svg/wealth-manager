@@ -50,12 +50,12 @@ export default function Settings() {
     fontSize: "medium",
     language: "ar",
   });
-  const [systemSettings, setSystemSettings] = useState({
-    defaultCommissionRate: 5,
-    defaultProfitRate: 10,
-    reminderDays: 3,
-    currency: "egp",
-  });
+  const [systemSettings, setSystemSettings] = useState<{
+    defaultCommissionRate: number;
+    defaultProfitRate: number;
+    reminderDays: number;
+    currency: string;
+  } | null>(null);
   const [security, setSecurity] = useState({
     twoFactorEnabled: false,
   });
@@ -653,77 +653,88 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>نسبة العمولة الافتراضية</Label>
-                    <Input
-                      type="number"
-                      value={systemSettings.defaultCommissionRate}
-                      onChange={(e) =>
-                        setSystemSettings((prev) => ({
-                          ...prev,
-                          defaultCommissionRate: Number(e.target.value || 0),
-                        }))
-                      }
-                      disabled={!isAdmin() || loadingSettings || savingSection === "system"}
-                    />
+                {loadingSettings || !systemSettings ? (
+                  <div className="space-y-4">
+                    <div className="h-10 w-full animate-pulse rounded-md bg-muted"></div>
+                    <div className="h-10 w-full animate-pulse rounded-md bg-muted"></div>
+                    <div className="h-10 w-full animate-pulse rounded-md bg-muted"></div>
+                    <div className="h-10 w-full animate-pulse rounded-md bg-muted"></div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>نسبة الربح الافتراضية</Label>
-                    <Input
-                      type="number"
-                      value={systemSettings.defaultProfitRate}
-                      onChange={(e) =>
-                        setSystemSettings((prev) => ({
-                          ...prev,
-                          defaultProfitRate: Number(e.target.value || 0),
-                        }))
-                      }
-                      disabled={!isAdmin() || loadingSettings || savingSection === "system"}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>أيام التنبيه قبل الموعد</Label>
-                    <Input
-                      type="number"
-                      value={systemSettings.reminderDays}
-                      onChange={(e) =>
-                        setSystemSettings((prev) => ({
-                          ...prev,
-                          reminderDays: Number(e.target.value || 0),
-                        }))
-                      }
-                      disabled={!isAdmin() || loadingSettings || savingSection === "system"}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>العملة</Label>
-                    <Select
-                      value={systemSettings.currency}
-                      onValueChange={(value) =>
-                        setSystemSettings((prev) => ({ ...prev, currency: value }))
-                      }
-                      disabled={!isAdmin() || loadingSettings || savingSection === "system"}
+                ) : (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>نسبة العمولة الافتراضية</Label>
+                        <Input
+                          type="number"
+                          value={systemSettings.defaultCommissionRate}
+                          onChange={(e) =>
+                            setSystemSettings((prev) => ({
+                              ...prev!,
+                              defaultCommissionRate: Number(e.target.value || 0),
+                            }))
+                          }
+                          disabled={!isAdmin() || savingSection === "system"}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>نسبة الربح الافتراضية</Label>
+                        <Input
+                          type="number"
+                          value={systemSettings.defaultProfitRate}
+                          onChange={(e) =>
+                            setSystemSettings((prev) => ({
+                              ...prev!,
+                              defaultProfitRate: Number(e.target.value || 0),
+                            }))
+                          }
+                          disabled={!isAdmin() || savingSection === "system"}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>أيام التنبيه قبل الموعد</Label>
+                        <Input
+                          type="number"
+                          value={systemSettings.reminderDays}
+                          onChange={(e) =>
+                            setSystemSettings((prev) => ({
+                              ...prev!,
+                              reminderDays: Number(e.target.value || 0),
+                            }))
+                          }
+                          disabled={!isAdmin() || savingSection === "system"}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>العملة</Label>
+                        <Select
+                          value={systemSettings.currency}
+                          onValueChange={(value) =>
+                            setSystemSettings((prev) => ({ ...prev!, currency: value }))
+                          }
+                          disabled={!isAdmin() || savingSection === "system"}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="egp">جنيه مصري (ج.م)</SelectItem>
+                            <SelectItem value="usd">دولار أمريكي ($)</SelectItem>
+                            <SelectItem value="sar">ريال سعودي (ر.س)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Button
+                      className="gradient-primary"
+                      onClick={handleSystemSave}
+                      disabled={!isAdmin() || savingSection === "system"}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="egp">جنيه مصري (ج.م)</SelectItem>
-                        <SelectItem value="usd">دولار أمريكي ($)</SelectItem>
-                        <SelectItem value="sar">ريال سعودي (ر.س)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Button
-                  className="gradient-primary"
-                  onClick={handleSystemSave}
-                  disabled={!isAdmin() || loadingSettings || savingSection === "system"}
-                >
-                  <Save className="ml-2 h-4 w-4" />
-                  {savingSection === "system" ? "جارٍ الحفظ..." : "حفظ التغييرات"}
-                </Button>
+                      <Save className="ml-2 h-4 w-4" />
+                      {savingSection === "system" ? "جارٍ الحفظ..." : "حفظ التغييرات"}
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

@@ -4,6 +4,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { ApiError } from '@/lib/errors';
+import { logger } from '@/lib/logger';
 
 const POSTERS_BUCKET = 'marketing-posters';
 const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour
@@ -85,7 +86,7 @@ export const postersApi = {
   async removeFile(path: string): Promise<void> {
     const { error } = await supabase.storage.from(POSTERS_BUCKET).remove([path]);
     if (error) {
-      console.warn('Failed to remove poster file from storage:', error.message);
+      logger.warn('Failed to remove poster file from storage', { error: error.message, path });
     }
   },
 
@@ -171,7 +172,7 @@ export const postersApi = {
         .maybeSingle();
 
       if (fetchError) {
-        console.warn('Failed to fetch poster before delete:', fetchError.message);
+        logger.warn('Failed to fetch poster before delete', { error: fetchError.message, posterId: id });
       }
 
       const { error } = await supabase

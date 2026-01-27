@@ -98,7 +98,12 @@ export type PhoneNumberBatchInsert = TablesInsert<'phone_number_batches'>;
 export type PhoneNumberBatchUpdate = TablesUpdate<'phone_number_batches'>;
 
 // Phone Numbers
-export type PhoneNumber = Tables<'phone_numbers'>;
+export type PhoneNumber = Tables<'phone_numbers'> & {
+  task_type: TaskType;
+  priority: TaskPriority;
+  due_date: string | null;
+  completed_at: string | null;
+};
 export type PhoneNumberInsert = TablesInsert<'phone_numbers'>;
 export type PhoneNumberUpdate = TablesUpdate<'phone_numbers'>;
 
@@ -109,6 +114,20 @@ export type PhoneNumberUpdate = TablesUpdate<'phone_numbers'>;
 export type AppRole = Enums<'app_role'>;
 export type Department = Enums<'department'>;
 export type PermissionCategory = Enums<'permission_category'>;
+
+// Task management types
+export type TaskType = 'call' | 'follow_up' | 'meeting' | 'other';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type TaskStatus =
+  | 'pending'
+  | 'in_progress'
+  | 'called'
+  | 'interested'
+  | 'not_interested'
+  | 'callback'
+  | 'converted'
+  | 'completed'
+  | 'cancelled';
 
 // ============================================================================
 // Extended Types with Relations
@@ -194,6 +213,36 @@ export type PhoneNumberBatchWithDetails = PhoneNumberBatch & {
 export type PhoneNumberWithAssignee = PhoneNumber & {
   assignee?: Profile;
 };
+
+// Task management helpers
+export interface TaskCalendarDay {
+  date: string;
+  tasks: PhoneNumber[];
+  counts: {
+    pending: number;
+    inProgress: number;
+    completed: number;
+  };
+}
+
+export interface TaskStats {
+  total: number;
+  pending: number;
+  inProgress: number;
+  completed: number;
+  overdue: number;
+  completedToday: number;
+}
+
+export interface AssignmentResult {
+  assigned: number;
+  perEmployee?: Record<string, number>;
+}
+
+export interface AssignmentOptions {
+  dueDays?: number;
+  priority?: TaskPriority;
+}
 
 // ============================================================================
 // Filter Types

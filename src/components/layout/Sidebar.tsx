@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -21,6 +21,8 @@ import {
   X,
   Key,
   CreditCard,
+  CheckSquare,
+  ListTodo,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +31,7 @@ import fisLogo from "@/assets/fis-logo.jpg";
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { Badge } from "@/components/ui/badge";
+import type { AppRole } from "@/types/database";
 
 interface NavItem {
   title: string;
@@ -38,16 +41,17 @@ interface NavItem {
   requireAdmin?: boolean;
   requireHR?: boolean;
   requiredPermissions?: string[];
+  requiredRoles?: AppRole[];
 }
 
 const roleLabels: Record<string, string> = {
-  super_admin: "سوبر أدمن",
-  admin: "أدمن",
-  hr_manager: "مدير HR",
-  hr_officer: "موظف HR",
-  tele_sales: "تيلي سيلز",
-  accountant: "محاسب",
-  support: "دعم فني",
+  super_admin: "Ø³ÙˆØ¨Ø± Ø£Ø¯Ù…Ù†",
+  admin: "Ø£Ø¯Ù…Ù†",
+  hr_manager: "Ù…Ø¯ÙŠØ± HR",
+  hr_officer: "Ù…ÙˆØ¸Ù HR",
+  tele_sales: "ØªÙŠÙ„ÙŠ Ø³ÙŠÙ„Ø²",
+  accountant: "Ù…Ø­Ø§Ø³Ø¨",
+  support: "Ø¯Ø¹Ù… ÙÙ†ÙŠ",
 };
 
 const roleColors: Record<string, string> = {
@@ -62,26 +66,34 @@ const roleColors: Record<string, string> = {
 
 // Main navigation items
 const mainNavItems: NavItem[] = [
-  { title: "لوحة التحكم", href: "/", icon: LayoutDashboard, requiredPermissions: ["view_dashboard"] },
-  { title: "مكالمات العملاء", href: "/admin/calls", icon: Phone, requiredPermissions: ["view_clients"] },
-  { title: "تارجت الموظفين", href: "/admin/targets", icon: Target, requireAdmin: true },
-  { title: "شات الفريق", href: "/admin/team-chat", icon: MessageSquare, requireAdmin: true },
-  { title: "الموظفين", href: "/employees", icon: Users, requiredPermissions: ["view_employees"] },
-  { title: "العملاء", href: "/clients", icon: UserCircle, requiredPermissions: ["view_clients"] },
-  { title: "العمولات", href: "/commissions", icon: Wallet, requiredPermissions: ["view_commissions"] },
-  { title: "التقويم المالي", href: "/calendar", icon: Calendar, requiredPermissions: ["view_calendar"] },
-  { title: "الموارد البشرية", href: "/hr", icon: Briefcase, requireHR: true, requiredPermissions: ["view_hr"] },
-  { title: "الشات", href: "/chat", icon: MessageSquare, badge: 3, requiredPermissions: ["view_chat"] },
-  { title: "التقارير", href: "/reports", icon: FileText, requiredPermissions: ["view_reports"] },
-  { title: "الإعدادات", href: "/settings", icon: Settings, requiredPermissions: ["view_settings"] },
+  { title: "Ù„ÙˆØ­Ø© Ø§Ù„ØªØ­ÙƒÙ…", href: "/", icon: LayoutDashboard, requiredPermissions: ["view_dashboard"] },
+  { title: "Ù…ÙƒØ§Ù„Ù…Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡", href: "/admin/calls", icon: Phone, requiredPermissions: ["view_clients"] },
+  {
+    title: "أرقام الهواتف",
+    href: "/admin/phone-numbers",
+    icon: Phone,
+    requiredRoles: ["super_admin", "admin", "tele_sales", "support"],
+  },
+  { title: "ØªØ§Ø±Ø¬Øª Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†", href: "/admin/targets", icon: Target, requireAdmin: true },
+  { title: "Ø´Ø§Øª Ø§Ù„ÙØ±ÙŠÙ‚", href: "/admin/team-chat", icon: MessageSquare, requireAdmin: true },
+  { title: "Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†", href: "/employees", icon: Users, requiredPermissions: ["view_employees"] },
+  { title: "Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡", href: "/clients", icon: UserCircle, requiredPermissions: ["view_clients"] },
+  { title: "Ø§Ù„Ø¹Ù…ÙˆÙ„Ø§Øª", href: "/commissions", icon: Wallet, requiredPermissions: ["view_commissions"] },
+  { title: "Ø§Ù„ØªÙ‚ÙˆÙŠÙ… Ø§Ù„Ù…Ø§Ù„ÙŠ", href: "/calendar", icon: Calendar, requiredPermissions: ["view_calendar"] },
+  { title: "مهامي", href: "/my-tasks", icon: CheckSquare },
+  { title: "Ø§Ù„Ù…ÙˆØ§Ø±Ø¯ Ø§Ù„Ø¨Ø´Ø±ÙŠØ©", href: "/hr", icon: Briefcase, requireHR: true, requiredPermissions: ["view_hr"] },
+  { title: "Ø§Ù„Ø´Ø§Øª", href: "/chat", icon: MessageSquare, badge: 3, requiredPermissions: ["view_chat"] },
+  { title: "Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ±", href: "/reports", icon: FileText, requiredPermissions: ["view_reports"] },
+  { title: "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª", href: "/settings", icon: Settings, requiredPermissions: ["view_settings"] },
 ];
 
 // Admin section items (shown at bottom)
 const adminNavItems: NavItem[] = [
-  { title: "الأدمن", href: "/admin", icon: Shield, requireAdmin: true },
-  { title: "إدارة المستخدمين", href: "/admin/users", icon: UserCog, requireAdmin: true },
-  { title: "إدارة الصلاحيات", href: "/admin/permissions", icon: Key, requireAdmin: true },
-  { title: "طرق الدفع", href: "/admin/payment-methods", icon: CreditCard, requireAdmin: true },
+  { title: "Ø§Ù„Ø£Ø¯Ù…Ù†", href: "/admin", icon: Shield, requireAdmin: true },
+  { title: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†", href: "/admin/users", icon: UserCog, requireAdmin: true },
+  { title: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ§Øª", href: "/admin/permissions", icon: Key, requireAdmin: true },
+  { title: "إدارة المهام", href: "/admin/tasks", icon: ListTodo, requireAdmin: true },
+  { title: "Ø·Ø±Ù‚ Ø§Ù„Ø¯ÙØ¹", href: "/admin/payment-methods", icon: CreditCard, requireAdmin: true },
 ];
 
 interface SidebarProps {
@@ -116,6 +128,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     if (item.requireAdmin && !isAdmin()) return false;
     // HR-only items
     if (item.requireHR && !isHR()) return false;
+    // Role-based items
+    if (item.requiredRoles && item.requiredRoles.length > 0) {
+      const hasRequiredRole = item.requiredRoles.some((role) => roles.includes(role));
+      if (!hasRequiredRole) return false;
+    }
     // Permission-based items (admins bypass this check)
     if (item.requiredPermissions && !isAdmin()) {
       if (!hasAnyPermission(item.requiredPermissions)) return false;
@@ -199,7 +216,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   FiS Management
                 </h1>
                 <p className="text-xs text-sidebar-foreground/70">
-                  نظام إدارة الاستثمارات
+                  Ù†Ø¸Ø§Ù… Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø§Ø³ØªØ«Ù…Ø§Ø±Ø§Øª
                 </p>
               </div>
             </Link>
@@ -266,7 +283,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-sidebar-foreground truncate">
-                  {profile ? `${profile.first_name} ${profile.last_name}` : "مستخدم"}
+                  {profile ? `${profile.first_name} ${profile.last_name}` : "Ù…Ø³ØªØ®Ø¯Ù…"}
                 </p>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {roles && roles.length > 0 ? (
@@ -280,10 +297,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     ))
                   ) : (
                     <span className="text-xs text-sidebar-foreground/70">
-                      {profile?.department === "admin" ? "الإدارة" : 
-                       profile?.department === "hr" ? "الموارد البشرية" :
-                       profile?.department === "tele_sales" ? "المبيعات" :
-                       profile?.department === "finance" ? "المالية" : "الدعم الفني"}
+                      {profile?.department === "admin" ? "Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©" : 
+                       profile?.department === "hr" ? "Ø§Ù„Ù…ÙˆØ§Ø±Ø¯ Ø§Ù„Ø¨Ø´Ø±ÙŠØ©" :
+                       profile?.department === "tele_sales" ? "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª" :
+                       profile?.department === "finance" ? "Ø§Ù„Ù…Ø§Ù„ÙŠØ©" : "Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ"}
                     </span>
                   )}
                 </div>
@@ -327,7 +344,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                 FiS Management
               </h1>
               <p className="text-xs text-sidebar-foreground/70">
-                نظام إدارة الاستثمارات
+                Ù†Ø¸Ø§Ù… Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø§Ø³ØªØ«Ù…Ø§Ø±Ø§Øª
               </p>
             </div>
           )}
@@ -376,7 +393,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {!collapsed && (
             <div className="flex-1 animate-fade-in min-w-0">
               <p className="text-sm font-semibold text-sidebar-foreground truncate">
-                {profile ? `${profile.first_name} ${profile.last_name}` : "مستخدم"}
+                {profile ? `${profile.first_name} ${profile.last_name}` : "Ù…Ø³ØªØ®Ø¯Ù…"}
               </p>
               <div className="flex flex-wrap gap-1 mt-1">
                 {roles && roles.length > 0 ? (
@@ -390,10 +407,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   ))
                 ) : (
                   <span className="text-xs text-sidebar-foreground/70">
-                    {profile?.department === "admin" ? "الإدارة" : 
-                     profile?.department === "hr" ? "الموارد البشرية" :
-                     profile?.department === "tele_sales" ? "المبيعات" :
-                     profile?.department === "finance" ? "المالية" : "الدعم الفني"}
+                    {profile?.department === "admin" ? "Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©" : 
+                     profile?.department === "hr" ? "Ø§Ù„Ù…ÙˆØ§Ø±Ø¯ Ø§Ù„Ø¨Ø´Ø±ÙŠØ©" :
+                     profile?.department === "tele_sales" ? "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª" :
+                     profile?.department === "finance" ? "Ø§Ù„Ù…Ø§Ù„ÙŠØ©" : "Ø§Ù„Ø¯Ø¹Ù… Ø§Ù„ÙÙ†ÙŠ"}
                   </span>
                 )}
               </div>

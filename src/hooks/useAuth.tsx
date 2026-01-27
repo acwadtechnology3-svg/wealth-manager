@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { AppRole } from "@/types/database";
+import { logger } from "@/lib/logger";
 
 // Profile interface with optional fields for flexibility
 interface Profile {
@@ -90,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (primaryError) {
         const isMissingColumn = primaryError.message?.includes("user_id");
         if (!isMissingColumn && primaryError.code !== "PGRST116") {
-          console.error("Error fetching profile:", primaryError);
+          logger.error("Error fetching profile", { error: primaryError, userId });
         }
       } else if (primaryProfile) {
         profileData = primaryProfile as Profile;
@@ -105,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .maybeSingle();
 
         if (fallbackError && fallbackError.code !== "PGRST116") {
-          console.error("Error fetching profile (fallback):", fallbackError);
+          logger.error("Error fetching profile (fallback)", { error: fallbackError, userId });
         }
 
         if (fallbackProfile) {
@@ -124,14 +125,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq("user_id", userId);
 
       if (rolesError) {
-        console.error("Error fetching roles:", rolesError);
+        logger.error("Error fetching roles", { error: rolesError, userId });
       }
 
       if (rolesData) {
         setRoles(rolesData.map((r) => r.role as AppRole));
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      logger.error("Error fetching user data", { error, userId });
     } finally {
       setLoading(false);
     }

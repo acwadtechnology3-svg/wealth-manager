@@ -31,13 +31,15 @@ import {
   usePhoneNumberBatches,
   useCreatePhoneNumberBatch,
   useDeletePhoneNumberBatch,
+  usePhoneNumbersByBatch,
 } from "@/hooks/queries/usePhoneNumbers";
 import { useProfiles } from "@/hooks/queries/useProfiles";
 import { parseWordFile } from "@/lib/wordParser";
 import type { ParsedPhoneData } from "@/lib/wordParser";
+import { MyPhoneNumbers } from "@/components/phone-numbers/MyPhoneNumbers";
 
 export default function PhoneNumbers() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -46,9 +48,15 @@ export default function PhoneNumbers() {
   const [manualAssignments, setManualAssignments] = useState<Record<string, string>>({});
   const [assignmentPool, setAssignmentPool] = useState<"tele_sales" | "all">("tele_sales");
   const [assignmentStrategy, setAssignmentStrategy] = useState<"random" | "manual">("random");
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [isNumbersDialogOpen, setIsNumbersDialogOpen] = useState(false);
 
-  const { data: batches = [], isLoading } = usePhoneNumberBatches();
-  const { data: employees = [] } = useProfiles({ active: true });
+  const isAdminUser = isAdmin();
+  const { data: batches = [], isLoading } = usePhoneNumberBatches({ enabled: isAdminUser });
+  const { data: employees = [] } = useProfiles({ active: true }, { enabled: isAdminUser });
+  const { data: batchNumbers = [], isLoading: isBatchNumbersLoading } = usePhoneNumbersByBatch(
+    selectedBatchId ?? undefined
+  );
   const createBatch = useCreatePhoneNumberBatch();
   const deleteBatch = useDeletePhoneNumberBatch();
 
@@ -72,6 +80,27 @@ export default function PhoneNumbers() {
 
   const normalizeName = (value: string) =>
     value.toLowerCase().replace(/\s+/g, " ").trim();
+
+  const selectedBatch = useMemo(
+    () => batches.find((batch) => batch.id === selectedBatchId) || null,
+    [batches, selectedBatchId]
+  );
+
+  const statusConfig: Record<string, { label: string; color: string }> = {
+    pending: { label: "معلق", color: "bg-yellow-500" },
+    called: { label: "تم الاتصال", color: "bg-blue-500" },
+    interested: { label: "مهتم", color: "bg-green-500" },
+    not_interested: { label: "غير مهتم", color: "bg-red-500" },
+    callback: { label: "إعادة اتصال", color: "bg-purple-500" },
+    converted: { label: "تم التحويل", color: "bg-success" },
+    in_progress: { label: "جاري", color: "bg-orange-500" },
+    completed: { label: "مكتمل", color: "bg-emerald-600" },
+  };
+
+  const openNumbersDialog = (batchId: string) => {
+    setSelectedBatchId(batchId);
+    setIsNumbersDialogOpen(true);
+  };
 
   useEffect(() => {
     if (!parsedData || parsedData.assignmentMode !== "cold_calling") {
@@ -261,9 +290,10 @@ export default function PhoneNumbers() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      {isAdminUser ? (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">إدارة أرقام الهواتف</h1>
             <p className="text-muted-foreground mt-1">رفع وتوزيع أرقام الهواتف على فريق المبيعات</p>
@@ -423,7 +453,75 @@ export default function PhoneNumbers() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
+          </div>
+
+        <Dialog
+          open={isNumbersDialogOpen}
+          onOpenChange={(open) => {
+            setIsNumbersDialogOpen(open);
+            if (!open) {
+              setSelectedBatchId(null);
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-[900px]">
+            <DialogHeader>
+              <DialogTitle>تفاصيل الأرقام</DialogTitle>
+              <DialogDescription>
+                {selectedBatch
+                  ? `${selectedBatch.file_name} • ${selectedBatch.total_numbers} رقم`
+                  : ""}
+              </DialogDescription>
+            </DialogHeader>
+            {isBatchNumbersLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : batchNumbers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                لم يتم إضافة أي أرقام لهذه المجموعة
+              </div>
+            ) : (
+              <div className="max-h-[60vh] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>رقم الهاتف</TableHead>
+                      <TableHead>الموظف</TableHead>
+                      <TableHead>المجموعة</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>الملاحظات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {batchNumbers.map((number) => {
+                      const statusKey = number.call_status || "pending";
+                      const status = statusConfig[statusKey] || {
+                        label: statusKey,
+                        color: "bg-muted",
+                      };
+                      return (
+                        <TableRow key={number.id}>
+                          <TableCell className="font-medium">{number.phone_number}</TableCell>
+                          <TableCell>
+                            {number.assignee?.full_name || number.assignee?.email || "غير معين"}
+                          </TableCell>
+                          <TableCell>{number.assigned_employee_name || "-"}</TableCell>
+                          <TableCell>
+                            <Badge className={status.color}>{status.label}</Badge>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {number.notes || "-"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Batches Table */}
         <Card>
@@ -464,13 +562,22 @@ export default function PhoneNumbers() {
                       <TableCell>{batch.uploader?.full_name}</TableCell>
                       <TableCell>{format(new Date(batch.created_at), 'PPp', { locale: ar })}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteBatch.mutate(batch.id)}
-                        >
-                          حذف
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openNumbersDialog(batch.id)}
+                          >
+                            عرض الأرقام
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteBatch.mutate(batch.id)}
+                          >
+                            حذف
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -479,7 +586,10 @@ export default function PhoneNumbers() {
             )}
           </CardContent>
         </Card>
-      </div>
+        </div>
+      ) : (
+        <MyPhoneNumbers />
+      )}
     </MainLayout>
   );
 }

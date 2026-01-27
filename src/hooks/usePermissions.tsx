@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { PermissionCategory, PAGE_PERMISSIONS } from "@/types/permissions";
+import { logger } from "@/lib/logger";
 
 interface PermissionsContextType {
   permissions: string[];
@@ -35,13 +36,13 @@ export const PermissionsProvider = ({ children }: { children: ReactNode }) => {
         .eq("user_id", user.id);
 
       if (error) {
-        console.error("Error fetching permissions:", error);
+        logger.error("Error fetching permissions", { error, userId: user.id });
         setPermissions([]);
       } else {
         setPermissions(data?.map((p) => p.permission) || []);
       }
     } catch (error) {
-      console.error("Error fetching permissions:", error);
+      logger.error("Error fetching permissions", { error, userId: user.id });
       setPermissions([]);
     } finally {
       setLoading(false);

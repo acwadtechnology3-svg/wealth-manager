@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { logger } from "@/lib/logger";
 import { UserPlus, Shield, Users, Search, Edit, Trash2, Key, Loader2, X, User } from "lucide-react";
 
 type AppRole = "super_admin" | "admin" | "hr_manager" | "hr_officer" | "tele_sales" | "accountant" | "support";
@@ -166,7 +167,7 @@ const UserManagement = () => {
           })
           .eq("user_id", authData.user.id);
 
-        if (profileError) console.error("Profile update error:", profileError);
+        if (profileError) logger.error("Profile update error", { error: profileError, userId: authData.user.id });
 
         // Add role
         const { error: roleError } = await supabase
@@ -176,7 +177,7 @@ const UserManagement = () => {
             role: newUserData.role,
           });
 
-        if (roleError) console.error("Role insert error:", roleError);
+        if (roleError) logger.error("Role insert error", { error: roleError, userId: authData.user.id, role: newUserData.role });
 
         toast({
           title: "تم بنجاح",
