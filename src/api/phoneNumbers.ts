@@ -53,7 +53,7 @@ export const phoneNumbersApi = {
         .single();
 
       if (batchError) throw new ApiError(batchError.message, batchError.code, batchError.details);
-      if (!batchData) throw new ApiError('ÙØ´Ù„ ÙÙŠ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø©', 'CREATE_FAILED');
+      if (!batchData) throw new ApiError('فشل في إنشاء المجموعة', 'CREATE_FAILED');
 
       // Insert phone numbers in batches of 1000
       const batchSize = 1000;
@@ -77,7 +77,7 @@ export const phoneNumbersApi = {
       return batchData as PhoneNumberBatch;
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('ÙØ´Ù„ ÙÙŠ Ø±ÙØ¹ Ø§Ù„Ø£Ø±Ù‚Ø§Ù…', 'UNKNOWN_ERROR');
+      throw new ApiError('فشل في رفع الأرقام', 'UNKNOWN_ERROR');
     }
   },
 
@@ -101,7 +101,7 @@ export const phoneNumbersApi = {
       return (data || []) as PhoneNumberBatchWithDetails[];
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø§Øª', 'UNKNOWN_ERROR');
+      throw new ApiError('فشل في تحميل المجموعات', 'UNKNOWN_ERROR');
     }
   },
 
@@ -127,7 +127,7 @@ export const phoneNumbersApi = {
       return (data || []) as PhoneNumberWithAssignee[];
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø£Ø±Ù‚Ø§Ù…', 'UNKNOWN_ERROR');
+      throw new ApiError('فشل في تحميل الأرقام', 'UNKNOWN_ERROR');
     }
   },
 
@@ -153,7 +153,7 @@ export const phoneNumbersApi = {
       return (data || []) as PhoneNumberWithAssignee[];
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø£Ø±Ù‚Ø§Ù… Ø§Ù„Ù…Ø®ØµØµØ©', 'UNKNOWN_ERROR');
+      throw new ApiError('فشل في تحميل الأرقام المخصصة', 'UNKNOWN_ERROR');
     }
   },
 
@@ -461,11 +461,11 @@ export const phoneNumbersApi = {
         .single();
 
       if (error) throw new ApiError(error.message, error.code, error.details);
-      if (!data) throw new ApiError('Ø§Ù„Ø±Ù‚Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯', 'NOT_FOUND');
+      if (!data) throw new ApiError('الرقم غير موجود', 'NOT_FOUND');
       return data as PhoneNumber;
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø±Ù‚Ù…', 'UNKNOWN_ERROR');
+      throw new ApiError('فشل في تحديث الرقم', 'UNKNOWN_ERROR');
     }
   },
 
@@ -482,7 +482,7 @@ export const phoneNumbersApi = {
       if (error) throw new ApiError(error.message, error.code, error.details);
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('ÙØ´Ù„ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹Ø©', 'UNKNOWN_ERROR');
+      throw new ApiError('فشل في حذف المجموعة', 'UNKNOWN_ERROR');
     }
   },
 
@@ -520,7 +520,7 @@ export const phoneNumbersApi = {
       };
     } catch (error) {
       if (error instanceof ApiError) throw error;
-      throw new ApiError('ÙØ´Ù„ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª', 'UNKNOWN_ERROR');
+      throw new ApiError('فشل في تحميل الإحصائيات', 'UNKNOWN_ERROR');
     }
   },
 };

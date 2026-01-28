@@ -53,11 +53,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
 const typeConfig = {
-  contract: { label: "�¹�‚�¯ �¹�…�„", icon: FileCheck, className: "bg-primary/10 text-primary" },
-  id_card: { label: "�¨�·�§�‚�© �´�®�µ�Š�©", icon: User, className: "bg-success/10 text-success" },
-  certificate: { label: "�´�‡�§�¯�©", icon: FileText, className: "bg-secondary/10 text-secondary-foreground" },
-  resume: { label: "�³�Š�±�© �°�§�ª�Š�©", icon: FileText, className: "bg-secondary/10 text-secondary-foreground" },
-  other: { label: "�£�®�±�‰", icon: File, className: "bg-muted text-muted-foreground" },
+  contract: { label: "عقد عمل", icon: FileCheck, className: "bg-primary/10 text-primary" },
+  id_card: { label: "بطاقة شخصية", icon: User, className: "bg-success/10 text-success" },
+  certificate: { label: "شهادة", icon: FileText, className: "bg-secondary/10 text-secondary-foreground" },
+  resume: { label: "سيرة ذاتية", icon: FileText, className: "bg-secondary/10 text-secondary-foreground" },
+  other: { label: "أخرى", icon: File, className: "bg-muted text-muted-foreground" },
 };
 
 const formatDate = (value?: string | null) => {
@@ -211,7 +211,7 @@ export default function Documents() {
   };
 
   const handleDelete = (id: string) => {
-    if (!window.confirm("�‡�„ �£�†�ª �…�ª�£�ƒ�¯ �…�† �­�°� �§�„�…�³�ª�†�¯؟")) return;
+    if (!window.confirm("هل أنت متأكد من حذف المستند؟")) return;
     deleteDocument.mutate(id);
   };
 
@@ -257,11 +257,11 @@ export default function Documents() {
       <MainLayout>
         <div className="flex flex-col items-center justify-center py-16 space-y-4">
           <div className="text-center space-y-2">
-            <h3 className="text-lg font-semibold">�­�¯�« �®�·�£ ��Š �ª�­�…�Š�„ �§�„�…�³�ª�†�¯�§�ª</h3>
+            <h3 className="text-lg font-semibold">حدث خطأ في تحميل المستندات</h3>
             <p className="text-sm text-muted-foreground">{error.message}</p>
           </div>
           <Button onClick={() => refetch()} variant="outline">
-            �¥�¹�§�¯�© �§�„�…�­�§�ˆ�„�©
+            إعادة المحاولة
           </Button>
         </div>
       </MainLayout>
@@ -274,21 +274,21 @@ export default function Documents() {
         {/* Header */}
         <div className="flex items-center justify-between animate-slide-right">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">�§�„�¹�‚�ˆ�¯ �ˆ�§�„�…�³�ª�†�¯�§�ª</h1>
+            <h1 className="text-3xl font-bold text-foreground">العقود والمستندات</h1>
             <p className="text-muted-foreground mt-1">
-              �±��¹ �ˆ�¥�¯�§�±�© �…�³�ª�†�¯�§�ª �§�„�…�ˆ�¸��Š�†
+              رفع وإدارة مستندات الموظفين
             </p>
           </div>
           <Dialog open={isUploadDialogOpen} onOpenChange={(open) => (open ? setIsUploadDialogOpen(true) : resetUploadForm())}>
             <DialogTrigger asChild>
               <Button className="gradient-primary">
                 <Upload className="ml-2 h-4 w-4" />
-                �±��¹ �…�³�ª�†�¯
+                رفع مستند
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>�±��¹ �…�³�ª�†�¯ �¬�¯�Š�¯</DialogTitle>
+                <DialogTitle>رفع مستند جديد</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -367,14 +367,14 @@ export default function Documents() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={resetUploadForm}>
-                  �¥�„�º�§�¡
+                  إلغاء
                 </Button>
                 <Button
                   className="gradient-primary"
                   onClick={handleUpload}
                   disabled={!selectedEmployee || !documentName || !user?.id || isUploading || createDocument.isPending}
                 >
-                  �±��¹ �§�„�…�³�ª�†�¯
+                  رفع المستند
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -386,11 +386,11 @@ export default function Documents() {
           <div className="flex items-center gap-4 rounded-xl border border-warning/30 bg-warning/5 p-4 animate-fade-in">
             <AlertTriangle className="h-5 w-5 text-warning" />
             <p className="flex-1 text-sm">
-              �Š�ˆ�¬�¯ <span className="font-bold">{expiringDocs.length}</span> �…�³�ª�†�¯�§�ª �ª�†�ª�‡�Š �®�„�§�„ 30 �Š�ˆ�….
-              �Š�±�¬�‰ �§�„�…�ª�§�¨�¹�©.
+              يوجد <span className="font-bold">{expiringDocs.length}</span> مستندات تنتهي خلال 30 يوم.
+              يرجى المتابعة.
             </p>
             <Button variant="outline" size="sm" className="border-warning/30 text-warning hover:bg-warning/10">
-              �¹�±�¶ �§�„�…�³�ª�†�¯�§�ª
+              عرض المستندات
             </Button>
           </div>
         )}
@@ -403,7 +403,7 @@ export default function Documents() {
                 <FileCheck className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">�¹�‚�ˆ�¯ �§�„�¹�…�„</p>
+                <p className="text-sm text-muted-foreground">عقود العمل</p>
                 <p className="text-2xl font-bold">
                   {counts.contract}
                 </p>
@@ -416,7 +416,7 @@ export default function Documents() {
                 <User className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">�¨�·�§�‚�§�ª �´�®�µ�Š�©</p>
+                <p className="text-sm text-muted-foreground">بطاقات شخصية</p>
                 <p className="text-2xl font-bold">
                   {counts.id_card}
                 </p>
@@ -429,7 +429,7 @@ export default function Documents() {
                 <FileText className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">�§�„�³�Š�± �§�„�°�§�ª�Š�©</p>
+                <p className="text-sm text-muted-foreground">السير الذاتية</p>
                 <p className="text-2xl font-bold">
                   {counts.resume}
                 </p>
@@ -442,7 +442,7 @@ export default function Documents() {
                 <Calendar className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">�ª�†�ª�‡�Š �‚�±�Š�¨�§�‹</p>
+                <p className="text-sm text-muted-foreground">تنتهي قريباً</p>
                 <p className="text-2xl font-bold text-warning">{counts.expiring}</p>
               </div>
             </div>
@@ -454,7 +454,7 @@ export default function Documents() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="�¨�­�« �¨�§�„�§�³�…..."
+              placeholder="بحث بالاسم..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-10"
@@ -462,10 +462,10 @@ export default function Documents() {
           </div>
           <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="�§�„�…�ˆ�¸�" />
+              <SelectValue placeholder="الموظف" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">�¬�…�Š�¹ �§�„�…�ˆ�¸��Š�†</SelectItem>
+              <SelectItem value="all">جميع الموظفين</SelectItem>
               {employees.map((emp) => (
                 <SelectItem key={emp.user_id} value={emp.user_id}>
                   {emp.full_name || emp.email}
@@ -475,15 +475,15 @@ export default function Documents() {
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-36">
-              <SelectValue placeholder="�§�„�†�ˆ�¹" />
+              <SelectValue placeholder="النوع" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">�¬�…�Š�¹ �§�„�£�†�ˆ�§�¹</SelectItem>
-              <SelectItem value="contract">�¹�‚�¯ �¹�…�„</SelectItem>
-              <SelectItem value="id_card">�¨�·�§�‚�© �´�®�µ�Š�©</SelectItem>
-              <SelectItem value="certificate">�´�‡�§�¯�©</SelectItem>
-              <SelectItem value="resume">�³�Š�±�© �°�§�ª�Š�©</SelectItem>
-              <SelectItem value="other">�£�®�±�‰</SelectItem>
+              <SelectItem value="all">جميع الأنواع</SelectItem>
+              <SelectItem value="contract">عقد عمل</SelectItem>
+              <SelectItem value="id_card">بطاقة شخصية</SelectItem>
+              <SelectItem value="certificate">شهادة</SelectItem>
+              <SelectItem value="resume">سيرة ذاتية</SelectItem>
+              <SelectItem value="other">أخرى</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -493,12 +493,12 @@ export default function Documents() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">�§�³�… �§�„�…�³�ª�†�¯</TableHead>
-                <TableHead className="text-right">�§�„�…�ˆ�¸�</TableHead>
-                <TableHead className="text-right">�§�„�†�ˆ�¹</TableHead>
-                <TableHead className="text-right">�ª�§�±�Š�® �§�„�±��¹</TableHead>
-                <TableHead className="text-right">�ª�§�±�Š�® �§�„�§�†�ª�‡�§�¡</TableHead>
-                <TableHead className="text-right">�§�„�¥�¬�±�§�¡�§�ª</TableHead>
+                <TableHead className="text-right">اسم المستند</TableHead>
+                <TableHead className="text-right">الموظف</TableHead>
+                <TableHead className="text-right">النوع</TableHead>
+                <TableHead className="text-right">تاريخ الرفع</TableHead>
+                <TableHead className="text-right">تاريخ الانتهاء</TableHead>
+                <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

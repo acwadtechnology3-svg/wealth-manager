@@ -40,9 +40,9 @@ import { useEmployees } from "@/hooks/queries/useProfiles";
 import { toast } from "@/hooks/use-toast";
 
 const statusLabels = {
-  draft: "Ù…Ø³ÙˆØ¯Ø©",
-  approved: "Ù…Ø¹ØªÙ…Ø¯",
-  paid: "Ù…ØµØ±ÙˆÙ",
+  draft: "مسودة",
+  approved: "معتمد",
+  paid: "مصروف",
 };
 
 const formatMonth = (year: number, month: number) => {
@@ -112,8 +112,8 @@ export default function Payroll() {
 
   const handleExportPDF = () => {
     toast({
-      title: "ØªÙ… Ø§Ù„ØªØµØ¯ÙŠØ±",
-      description: "ØªÙ… ØªØµØ¯ÙŠØ± ÙƒØ´Ù Ø§Ù„Ø±Ø§ØªØ¨ Ø¨ØµÙŠØºØ© PDF",
+      title: "تم التصدير",
+      description: "تم تصدير كشف الراتب بصيغة PDF",
     });
   };
 
@@ -155,11 +155,11 @@ export default function Payroll() {
       <MainLayout>
         <div className="flex flex-col items-center justify-center py-16 space-y-4">
           <div className="text-center space-y-2">
-            <h3 className="text-lg font-semibold">Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø±ÙˆØ§ØªØ¨</h3>
+            <h3 className="text-lg font-semibold">حدث خطأ في تحميل سجلات الرواتب</h3>
             <p className="text-sm text-muted-foreground">{error.message}</p>
           </div>
           <Button onClick={() => refetch()} variant="outline">
-            Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©
+            إعادة المحاولة
           </Button>
         </div>
       </MainLayout>
@@ -172,14 +172,14 @@ export default function Payroll() {
         {/* Header */}
         <div className="flex items-center justify-between animate-slide-right">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Ø§Ù„Ø±ÙˆØ§ØªØ¨</h1>
+            <h1 className="text-3xl font-bold text-foreground">الرواتب</h1>
             <p className="text-muted-foreground mt-1">
-              ÙƒØ´ÙˆÙ Ø§Ù„Ù…Ø±ØªØ¨Ø§Øª ÙˆØ§Ù„Ø¹Ù…ÙˆÙ„Ø§Øª
+              كشوف المرتبات والعمولات
             </p>
           </div>
           <Button variant="outline">
             <Download className="ml-2 h-4 w-4" />
-            ØªØµØ¯ÙŠØ± Ø§Ù„ÙƒÙ„
+            تصدير الكل
           </Button>
         </div>
 
@@ -191,7 +191,7 @@ export default function Payroll() {
                 <Wallet className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Ø§Ù„Ø±ÙˆØ§ØªØ¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©</p>
+                <p className="text-xs text-muted-foreground">الرواتب الأساسية</p>
                 <p className="text-lg font-bold">{totals.baseSalary.toLocaleString()}</p>
               </div>
             </div>
@@ -202,7 +202,7 @@ export default function Payroll() {
                 <TrendingUp className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Ø§Ù„Ø¹Ù…ÙˆÙ„Ø§Øª</p>
+                <p className="text-xs text-muted-foreground">العمولات</p>
                 <p className="text-lg font-bold text-success">{totals.commissions.toLocaleString()}</p>
               </div>
             </div>
@@ -213,7 +213,7 @@ export default function Payroll() {
                 <DollarSign className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Ø§Ù„Ù…ÙƒØ§ÙØ¢Øª</p>
+                <p className="text-xs text-muted-foreground">المكافآت</p>
                 <p className="text-lg font-bold">{totals.bonuses.toLocaleString()}</p>
               </div>
             </div>
@@ -224,7 +224,7 @@ export default function Payroll() {
                 <TrendingDown className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Ø§Ù„Ø®ØµÙˆÙ…Ø§Øª</p>
+                <p className="text-xs text-muted-foreground">الخصومات</p>
                 <p className="text-lg font-bold text-destructive">{totals.deductions.toLocaleString()}</p>
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function Payroll() {
                 <Wallet className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">ØµØ§ÙÙŠ Ø§Ù„Ø±ÙˆØ§ØªØ¨</p>
+                <p className="text-xs text-muted-foreground">صافي الرواتب</p>
                 <p className="text-lg font-bold text-primary">{totals.netSalary.toLocaleString()}</p>
               </div>
             </div>
@@ -247,7 +247,7 @@ export default function Payroll() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Ø¨Ø­Ø« Ø¨Ø§Ù„Ø§Ø³Ù…..."
+              placeholder="بحث بالاسم..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-10"
@@ -262,13 +262,13 @@ export default function Payroll() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-36">
               <Filter className="ml-2 h-4 w-4" />
-              <SelectValue placeholder="Ø§Ù„Ø­Ø§Ù„Ø©" />
+              <SelectValue placeholder="الحالة" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Ø§Ù„ÙƒÙ„</SelectItem>
-              <SelectItem value="draft">Ù…Ø³ÙˆØ¯Ø©</SelectItem>
-              <SelectItem value="approved">Ù…Ø¹ØªÙ…Ø¯</SelectItem>
-              <SelectItem value="paid">Ù…ØµØ±ÙˆÙ</SelectItem>
+              <SelectItem value="all">الكل</SelectItem>
+              <SelectItem value="draft">مسودة</SelectItem>
+              <SelectItem value="approved">معتمد</SelectItem>
+              <SelectItem value="paid">مصروف</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -278,15 +278,15 @@ export default function Payroll() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">Ø§Ù„Ù…ÙˆØ¸Ù</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø´Ù‡Ø±</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø±Ø§ØªØ¨ Ø§Ù„Ø£Ø³Ø§Ø³ÙŠ</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø¹Ù…ÙˆÙ„Ø§Øª</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ù…ÙƒØ§ÙØ¢Øª</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø®ØµÙˆÙ…Ø§Øª</TableHead>
-                <TableHead className="text-right">ØµØ§ÙÙŠ Ø§Ù„Ø±Ø§ØªØ¨</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø­Ø§Ù„Ø©</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª</TableHead>
+                <TableHead className="text-right">الموظف</TableHead>
+                <TableHead className="text-right">الشهر</TableHead>
+                <TableHead className="text-right">الراتب الأساسي</TableHead>
+                <TableHead className="text-right">العمولات</TableHead>
+                <TableHead className="text-right">المكافآت</TableHead>
+                <TableHead className="text-right">الخصومات</TableHead>
+                <TableHead className="text-right">صافي الراتب</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
+                <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -312,15 +312,15 @@ export default function Payroll() {
                       {formatMonth(record.period_year, record.period_month)}
                     </TableCell>
                     <TableCell className="font-semibold">
-                      {record.base_salary > 0 ? `${Number(record.base_salary).toLocaleString()} Ø¬.Ù…` : "-"}
+                      {record.base_salary > 0 ? `${Number(record.base_salary).toLocaleString()} ج.م` : "-"}
                     </TableCell>
                     <TableCell className="text-success font-semibold">
-                      {Number(record.commission || 0).toLocaleString()} Ø¬.Ù…
+                      {Number(record.commission || 0).toLocaleString()} ج.م
                     </TableCell>
                     <TableCell>
                       {record.bonuses > 0 ? (
                         <span className="text-secondary-foreground font-medium">
-                          +{Number(record.bonuses).toLocaleString()} Ø¬.Ù…
+                          +{Number(record.bonuses).toLocaleString()} ج.م
                         </span>
                       ) : (
                         "-"
@@ -329,14 +329,14 @@ export default function Payroll() {
                     <TableCell>
                       {record.deductions > 0 ? (
                         <span className="text-destructive font-medium">
-                          -{Number(record.deductions).toLocaleString()} Ø¬.Ù…
+                          -{Number(record.deductions).toLocaleString()} ج.م
                         </span>
                       ) : (
                         "-"
                       )}
                     </TableCell>
                     <TableCell className="font-bold text-primary text-lg">
-                      {Number(record.total_salary || 0).toLocaleString()} Ø¬.Ù…
+                      {Number(record.total_salary || 0).toLocaleString()} ج.م
                     </TableCell>
                     <TableCell>
                       <Badge

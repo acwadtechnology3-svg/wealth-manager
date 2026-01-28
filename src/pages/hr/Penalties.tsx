@@ -50,22 +50,22 @@ import { useAuth } from "@/hooks/useAuth";
 
 const typeConfig = {
   warning: {
-    label: "Ø¥Ù†Ø°Ø§Ø±",
+    label: "إنذار",
     className: "bg-warning/10 text-warning border-warning/20",
     icon: AlertCircle,
   },
   suspension: {
-    label: "Ø¥ÙŠÙ‚Ø§Ù",
+    label: "إيقاف",
     className: "bg-destructive/10 text-destructive border-destructive/20",
     icon: AlertTriangle,
   },
   fine: {
-    label: "Ø®ØµÙ…",
+    label: "خصم",
     className: "bg-destructive/10 text-destructive border-destructive/20",
     icon: MinusCircle,
   },
   other: {
-    label: "Ù…Ù„Ø§Ø­Ø¸Ø©",
+    label: "ملاحظة",
     className: "bg-secondary/10 text-secondary-foreground border-secondary/20",
     icon: FileText,
   },
@@ -182,11 +182,11 @@ export default function Penalties() {
       <MainLayout>
         <div className="flex flex-col items-center justify-center py-16 space-y-4">
           <div className="text-center space-y-2">
-            <h3 className="text-lg font-semibold">Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¬Ø²Ø§Ø¡Ø§Øª</h3>
+            <h3 className="text-lg font-semibold">حدث خطأ في تحميل الجزاءات</h3>
             <p className="text-sm text-muted-foreground">{error.message}</p>
           </div>
           <Button onClick={() => refetch()} variant="outline">
-            Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©
+            إعادة المحاولة
           </Button>
         </div>
       </MainLayout>
@@ -199,28 +199,28 @@ export default function Penalties() {
         {/* Header */}
         <div className="flex items-center justify-between animate-slide-right">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Ø§Ù„Ø¬Ø²Ø§Ø¡Ø§Øª ÙˆØ§Ù„Ù…Ù„Ø§Ø­Ø¸Ø§Øª</h1>
+            <h1 className="text-3xl font-bold text-foreground">الجزاءات والملاحظات</h1>
             <p className="text-muted-foreground mt-1">
-              Ø§Ù„Ø¥Ù†Ø°Ø§Ø±Ø§Øª ÙˆØ§Ù„Ø®ØµÙˆÙ…Ø§Øª ÙˆØ§Ù„Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ©
+              الإنذارات والخصومات والملاحظات الإدارية
             </p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gradient-primary">
                 <Plus className="ml-2 h-4 w-4" />
-                Ø¥Ø¶Ø§ÙØ© Ø¬Ø²Ø§Ø¡/Ù…Ù„Ø§Ø­Ø¸Ø©
+                إضافة جزاء/ملاحظة
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>ØªØ³Ø¬ÙŠÙ„ Ø¬Ø²Ø§Ø¡ Ø£Ùˆ Ù…Ù„Ø§Ø­Ø¸Ø©</DialogTitle>
+                <DialogTitle>تسجيل جزاء أو ملاحظة</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Ø§Ù„Ù…ÙˆØ¸Ù</Label>
+                  <Label>الموظف</Label>
                   <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Ø§Ø®ØªØ± Ø§Ù„Ù…ÙˆØ¸Ù" />
+                      <SelectValue placeholder="اختر الموظف" />
                     </SelectTrigger>
                     <SelectContent>
                       {employees.map((emp) => (
@@ -232,22 +232,22 @@ export default function Penalties() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Ø§Ù„Ù†ÙˆØ¹</Label>
+                  <Label>النوع</Label>
                   <Select value={penaltyType} onValueChange={setPenaltyType}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="warning">Ø¥Ù†Ø°Ø§Ø±</SelectItem>
-                      <SelectItem value="suspension">Ø¥ÙŠÙ‚Ø§Ù</SelectItem>
-                      <SelectItem value="fine">Ø®ØµÙ…</SelectItem>
-                      <SelectItem value="other">Ù…Ù„Ø§Ø­Ø¸Ø©</SelectItem>
+                      <SelectItem value="warning">إنذار</SelectItem>
+                      <SelectItem value="suspension">إيقاف</SelectItem>
+                      <SelectItem value="fine">خصم</SelectItem>
+                      <SelectItem value="other">ملاحظة</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 {penaltyType === "fine" && (
                   <div className="space-y-2">
-                    <Label>Ù…Ø¨Ù„Øº Ø§Ù„Ø®ØµÙ… (Ø¬.Ù…)</Label>
+                    <Label>مبلغ الخصم (ج.م)</Label>
                     <Input
                       type="number"
                       value={amount}
@@ -257,9 +257,9 @@ export default function Penalties() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label>Ø§Ù„Ø³Ø¨Ø¨</Label>
+                  <Label>السبب</Label>
                   <Textarea
-                    placeholder="Ø§ÙƒØªØ¨ Ø§Ù„Ø³Ø¨Ø¨ Ø£Ùˆ Ø§Ù„ØªÙØ§ØµÙŠÙ„..."
+                    placeholder="اكتب السبب أو التفاصيل..."
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                   />
@@ -267,14 +267,14 @@ export default function Penalties() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Ø¥Ù„ØºØ§Ø¡
+                  إلغاء
                 </Button>
                 <Button
                   className="gradient-primary"
                   onClick={handleSubmit}
                   disabled={!selectedEmployee || !reason || !user?.id}
                 >
-                  ØªØ³Ø¬ÙŠÙ„
+                  تسجيل
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -289,7 +289,7 @@ export default function Penalties() {
                 <AlertCircle className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ø§Ù„Ø¥Ù†Ø°Ø§Ø±Ø§Øª</p>
+                <p className="text-sm text-muted-foreground">الإنذارات</p>
                 <p className="text-2xl font-bold text-warning">{warningCount}</p>
               </div>
             </div>
@@ -300,7 +300,7 @@ export default function Penalties() {
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ø§Ù„Ø¥ÙŠÙ‚Ø§Ù</p>
+                <p className="text-sm text-muted-foreground">الإيقاف</p>
                 <p className="text-2xl font-bold text-destructive">{suspensionCount}</p>
               </div>
             </div>
@@ -311,7 +311,7 @@ export default function Penalties() {
                 <FileText className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ø§Ù„Ù…Ù„Ø§Ø­Ø¸Ø§Øª</p>
+                <p className="text-sm text-muted-foreground">الملاحظات</p>
                 <p className="text-2xl font-bold">{otherCount}</p>
               </div>
             </div>
@@ -322,8 +322,8 @@ export default function Penalties() {
                 <MinusCircle className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø®ØµÙˆÙ…Ø§Øª</p>
-                <p className="text-2xl font-bold text-destructive">{totalDeductions} Ø¬.Ù…</p>
+                <p className="text-sm text-muted-foreground">إجمالي الخصومات</p>
+                <p className="text-2xl font-bold text-destructive">{totalDeductions} ج.م</p>
               </div>
             </div>
           </div>
@@ -334,7 +334,7 @@ export default function Penalties() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Ø¨Ø­Ø« Ø¨Ø§Ù„Ø§Ø³Ù…..."
+              placeholder="بحث بالاسم..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-10"
@@ -343,19 +343,19 @@ export default function Penalties() {
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-36">
               <Filter className="ml-2 h-4 w-4" />
-              <SelectValue placeholder="Ø§Ù„Ù†ÙˆØ¹" />
+              <SelectValue placeholder="النوع" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Ø§Ù„ÙƒÙ„</SelectItem>
-              <SelectItem value="warning">Ø¥Ù†Ø°Ø§Ø±</SelectItem>
-              <SelectItem value="suspension">Ø¥ÙŠÙ‚Ø§Ù</SelectItem>
-              <SelectItem value="fine">Ø®ØµÙ…</SelectItem>
-              <SelectItem value="other">Ù…Ù„Ø§Ø­Ø¸Ø©</SelectItem>
+              <SelectItem value="all">الكل</SelectItem>
+              <SelectItem value="warning">إنذار</SelectItem>
+              <SelectItem value="suspension">إيقاف</SelectItem>
+              <SelectItem value="fine">خصم</SelectItem>
+              <SelectItem value="other">ملاحظة</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline">
             <Download className="ml-2 h-4 w-4" />
-            ØªØµØ¯ÙŠØ±
+            تصدير
           </Button>
         </div>
 
@@ -364,12 +364,12 @@ export default function Penalties() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">Ø§Ù„Ù…ÙˆØ¸Ù</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ù†ÙˆØ¹</TableHead>
-                <TableHead className="text-right">Ø§Ù„ØªØ§Ø±ÙŠØ®</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø³Ø¨Ø¨</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ù…Ø¨Ù„Øº</TableHead>
-                <TableHead className="text-right">Ø¨ÙˆØ§Ø³Ø·Ø©</TableHead>
+                <TableHead className="text-right">الموظف</TableHead>
+                <TableHead className="text-right">النوع</TableHead>
+                <TableHead className="text-right">التاريخ</TableHead>
+                <TableHead className="text-right">السبب</TableHead>
+                <TableHead className="text-right">المبلغ</TableHead>
+                <TableHead className="text-right">بواسطة</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -408,7 +408,7 @@ export default function Penalties() {
                     <TableCell>
                       {penalty.amount ? (
                         <span className="text-destructive font-semibold">
-                          -{penalty.amount} Ø¬.Ù…
+                          -{penalty.amount} ج.م
                         </span>
                       ) : (
                         "-"

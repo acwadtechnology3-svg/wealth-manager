@@ -49,19 +49,19 @@ import {
 import { useEmployees } from "@/hooks/queries/useProfiles";
 
 const statusConfig = {
-  pending: { label: "Ù…Ø¹Ù„Ù‚", className: "bg-warning/10 text-warning border-warning/20" },
-  approved: { label: "Ù…ÙˆØ§ÙÙ‚ Ø¹Ù„ÙŠÙ‡", className: "bg-success/10 text-success border-success/20" },
-  rejected: { label: "Ù…Ø±ÙÙˆØ¶", className: "bg-destructive/10 text-destructive border-destructive/20" },
-  cancelled: { label: "Ù…Ù„ØºÙ‰", className: "bg-muted text-muted-foreground border-muted/20" },
+  pending: { label: "معلق", className: "bg-warning/10 text-warning border-warning/20" },
+  approved: { label: "موافق عليه", className: "bg-success/10 text-success border-success/20" },
+  rejected: { label: "مرفوض", className: "bg-destructive/10 text-destructive border-destructive/20" },
+  cancelled: { label: "ملغى", className: "bg-muted text-muted-foreground border-muted/20" },
 };
 
 const leaveTypeConfig = {
-  vacation: { label: "Ø³Ù†ÙˆÙŠØ©", className: "bg-primary/10 text-primary" },
-  sick: { label: "Ù…Ø±Ø¶ÙŠØ©", className: "bg-warning/10 text-warning" },
-  personal: { label: "Ø´Ø®ØµÙŠØ©", className: "bg-secondary/10 text-secondary-foreground" },
-  maternity: { label: "ÙˆØ¶Ø¹", className: "bg-accent/10 text-accent-foreground" },
-  paternity: { label: "Ø£Ø¨ÙˆØ©", className: "bg-accent/10 text-accent-foreground" },
-  unpaid: { label: "Ø¨Ø¯ÙˆÙ† Ø£Ø¬Ø±", className: "bg-muted text-muted-foreground" },
+  vacation: { label: "سنوية", className: "bg-primary/10 text-primary" },
+  sick: { label: "مرضية", className: "bg-warning/10 text-warning" },
+  personal: { label: "شخصية", className: "bg-secondary/10 text-secondary-foreground" },
+  maternity: { label: "وضع", className: "bg-accent/10 text-accent-foreground" },
+  paternity: { label: "أبوة", className: "bg-accent/10 text-accent-foreground" },
+  unpaid: { label: "بدون أجر", className: "bg-muted text-muted-foreground" },
 };
 
 const calculateDays = (start: string, end: string) => {
@@ -192,11 +192,11 @@ export default function Leaves() {
       <MainLayout>
         <div className="flex flex-col items-center justify-center py-16 space-y-4">
           <div className="text-center space-y-2">
-            <h3 className="text-lg font-semibold">Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¥Ø¬Ø§Ø²Ø§Øª</h3>
+            <h3 className="text-lg font-semibold">حدث خطأ في تحميل طلبات الإجازات</h3>
             <p className="text-sm text-muted-foreground">{error.message}</p>
           </div>
           <Button onClick={() => refetch()} variant="outline">
-            Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©
+            إعادة المحاولة
           </Button>
         </div>
       </MainLayout>
@@ -209,28 +209,28 @@ export default function Leaves() {
         {/* Header */}
         <div className="flex items-center justify-between animate-slide-right">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Ø§Ù„Ø¥Ø¬Ø§Ø²Ø§Øª</h1>
+            <h1 className="text-3xl font-bold text-foreground">الإجازات</h1>
             <p className="text-muted-foreground mt-1">
-              Ø¥Ø¯Ø§Ø±Ø© Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¥Ø¬Ø§Ø²Ø§Øª ÙˆØ§Ù„Ù…ÙˆØ§ÙÙ‚Ø§Øª
+              إدارة طلبات الإجازات والموافقات
             </p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gradient-primary">
                 <Plus className="ml-2 h-4 w-4" />
-                Ø·Ù„Ø¨ Ø¥Ø¬Ø§Ø²Ø© Ø¬Ø¯ÙŠØ¯
+                طلب إجازة جديد
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>ØªÙ‚Ø¯ÙŠÙ… Ø·Ù„Ø¨ Ø¥Ø¬Ø§Ø²Ø©</DialogTitle>
+                <DialogTitle>تقديم طلب إجازة</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Ø§Ù„Ù…ÙˆØ¸Ù</Label>
+                  <Label>الموظف</Label>
                   <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Ø§Ø®ØªØ± Ø§Ù„Ù…ÙˆØ¸Ù" />
+                      <SelectValue placeholder="اختر الموظف" />
                     </SelectTrigger>
                     <SelectContent>
                       {employees.map((emp) => (
@@ -242,24 +242,24 @@ export default function Leaves() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Ù†ÙˆØ¹ Ø§Ù„Ø¥Ø¬Ø§Ø²Ø©</Label>
+                  <Label>نوع الإجازة</Label>
                   <Select value={leaveType} onValueChange={setLeaveType}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="vacation">Ø³Ù†ÙˆÙŠØ©</SelectItem>
-                      <SelectItem value="sick">Ù…Ø±Ø¶ÙŠØ©</SelectItem>
-                      <SelectItem value="personal">Ø´Ø®ØµÙŠØ©</SelectItem>
-                      <SelectItem value="maternity">ÙˆØ¶Ø¹</SelectItem>
-                      <SelectItem value="paternity">Ø£Ø¨ÙˆØ©</SelectItem>
-                      <SelectItem value="unpaid">Ø¨Ø¯ÙˆÙ† Ø£Ø¬Ø±</SelectItem>
+                      <SelectItem value="vacation">سنوية</SelectItem>
+                      <SelectItem value="sick">مرضية</SelectItem>
+                      <SelectItem value="personal">شخصية</SelectItem>
+                      <SelectItem value="maternity">وضع</SelectItem>
+                      <SelectItem value="paternity">أبوة</SelectItem>
+                      <SelectItem value="unpaid">بدون أجر</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Ù…Ù† ØªØ§Ø±ÙŠØ®</Label>
+                    <Label>من تاريخ</Label>
                     <Input
                       type="date"
                       value={startDate}
@@ -267,7 +267,7 @@ export default function Leaves() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Ø¥Ù„Ù‰ ØªØ§Ø±ÙŠØ®</Label>
+                    <Label>إلى تاريخ</Label>
                     <Input
                       type="date"
                       value={endDate}
@@ -276,9 +276,9 @@ export default function Leaves() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Ø§Ù„Ø³Ø¨Ø¨</Label>
+                  <Label>السبب</Label>
                   <Textarea
-                    placeholder="Ø§ÙƒØªØ¨ Ø³Ø¨Ø¨ Ø§Ù„Ø¥Ø¬Ø§Ø²Ø©..."
+                    placeholder="اكتب سبب الإجازة..."
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                   />
@@ -286,14 +286,14 @@ export default function Leaves() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Ø¥Ù„ØºØ§Ø¡
+                  إلغاء
                 </Button>
                 <Button
                   className="gradient-primary"
                   onClick={handleSubmitRequest}
                   disabled={!selectedEmployee || !startDate || !endDate}
                 >
-                  ØªÙ‚Ø¯ÙŠÙ… Ø§Ù„Ø·Ù„Ø¨
+                  تقديم الطلب
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -308,7 +308,7 @@ export default function Leaves() {
                 <Clock className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ø·Ù„Ø¨Ø§Øª Ù…Ø¹Ù„Ù‚Ø©</p>
+                <p className="text-sm text-muted-foreground">طلبات معلقة</p>
                 <p className="text-3xl font-bold text-warning">{pendingCount}</p>
               </div>
             </div>
@@ -319,7 +319,7 @@ export default function Leaves() {
                 <Check className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ù…ÙˆØ§ÙÙ‚ Ø¹Ù„ÙŠÙ‡Ø§</p>
+                <p className="text-sm text-muted-foreground">موافق عليها</p>
                 <p className="text-3xl font-bold text-success">{approvedCount}</p>
               </div>
             </div>
@@ -330,7 +330,7 @@ export default function Leaves() {
                 <X className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ù…Ø±ÙÙˆØ¶Ø©</p>
+                <p className="text-sm text-muted-foreground">مرفوضة</p>
                 <p className="text-3xl font-bold text-destructive">{rejectedCount}</p>
               </div>
             </div>
@@ -342,7 +342,7 @@ export default function Leaves() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Ø¨Ø­Ø« Ø¨Ø§Ù„Ø§Ø³Ù…..."
+              placeholder="بحث بالاسم..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-10"
@@ -351,19 +351,19 @@ export default function Leaves() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-40">
               <Filter className="ml-2 h-4 w-4" />
-              <SelectValue placeholder="Ø§Ù„Ø­Ø§Ù„Ø©" />
+              <SelectValue placeholder="الحالة" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ø§Ù„Ø§Øª</SelectItem>
-              <SelectItem value="pending">Ù…Ø¹Ù„Ù‚</SelectItem>
-              <SelectItem value="approved">Ù…ÙˆØ§ÙÙ‚ Ø¹Ù„ÙŠÙ‡</SelectItem>
-              <SelectItem value="rejected">Ù…Ø±ÙÙˆØ¶</SelectItem>
-              <SelectItem value="cancelled">Ù…Ù„ØºÙ‰</SelectItem>
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              <SelectItem value="pending">معلق</SelectItem>
+              <SelectItem value="approved">موافق عليه</SelectItem>
+              <SelectItem value="rejected">مرفوض</SelectItem>
+              <SelectItem value="cancelled">ملغى</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline">
             <Download className="ml-2 h-4 w-4" />
-            ØªØµØ¯ÙŠØ±
+            تصدير
           </Button>
         </div>
 
@@ -372,14 +372,14 @@ export default function Leaves() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">Ø§Ù„Ù…ÙˆØ¸Ù</TableHead>
-                <TableHead className="text-right">Ù†ÙˆØ¹ Ø§Ù„Ø¥Ø¬Ø§Ø²Ø©</TableHead>
-                <TableHead className="text-right">Ù…Ù†</TableHead>
-                <TableHead className="text-right">Ø¥Ù„Ù‰</TableHead>
-                <TableHead className="text-right">Ø¹Ø¯Ø¯ Ø§Ù„Ø£ÙŠØ§Ù…</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø³Ø¨Ø¨</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø­Ø§Ù„Ø©</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª</TableHead>
+                <TableHead className="text-right">الموظف</TableHead>
+                <TableHead className="text-right">نوع الإجازة</TableHead>
+                <TableHead className="text-right">من</TableHead>
+                <TableHead className="text-right">إلى</TableHead>
+                <TableHead className="text-right">عدد الأيام</TableHead>
+                <TableHead className="text-right">السبب</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
+                <TableHead className="text-right">الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -411,7 +411,7 @@ export default function Leaves() {
                     </TableCell>
                     <TableCell className="text-muted-foreground">{request.start_date}</TableCell>
                     <TableCell className="text-muted-foreground">{request.end_date}</TableCell>
-                    <TableCell className="font-semibold">{request.days_count} ÙŠÙˆÙ…</TableCell>
+                    <TableCell className="font-semibold">{request.days_count} يوم</TableCell>
                     <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
                       {request.reason || "-"}
                     </TableCell>
@@ -442,7 +442,7 @@ export default function Leaves() {
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">
-                          {approvedBy && `Ø¨ÙˆØ§Ø³Ø·Ø©: ${approvedBy}`}
+                          {approvedBy && `بواسطة: ${approvedBy}`}
                         </span>
                       )}
                     </TableCell>

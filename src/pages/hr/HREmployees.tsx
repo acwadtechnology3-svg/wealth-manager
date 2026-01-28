@@ -47,16 +47,16 @@ import { useDocuments } from "@/hooks/queries/useDocuments";
 import { AddEmployeeDialog } from "@/components/hr/AddEmployeeDialog";
 
 const statusConfig = {
-  active: { label: "Ù†Ø´Ø·", className: "bg-success/10 text-success border-success/20" },
-  "on-leave": { label: "ÙÙŠ Ø¥Ø¬Ø§Ø²Ø©", className: "bg-warning/10 text-warning border-warning/20" },
-  suspended: { label: "Ù…ÙˆÙ‚ÙˆÙ", className: "bg-destructive/10 text-destructive border-destructive/20" },
+  active: { label: "نشط", className: "bg-success/10 text-success border-success/20" },
+  "on-leave": { label: "في إجازة", className: "bg-warning/10 text-warning border-warning/20" },
+  suspended: { label: "موقوف", className: "bg-destructive/10 text-destructive border-destructive/20" },
 };
 
 const employmentTypeConfig = {
-  "full-time": { label: "Ø¯ÙˆØ§Ù… ÙƒØ§Ù…Ù„", className: "bg-primary/10 text-primary" },
-  "part-time": { label: "Ø¯ÙˆØ§Ù… Ø¬Ø²Ø¦ÙŠ", className: "bg-secondary/10 text-secondary-foreground" },
-  commission: { label: "Ø¨Ø§Ù„Ø¹Ù…ÙˆÙ„Ø©", className: "bg-accent/10 text-accent-foreground" },
-  unknown: { label: "ØºÙŠØ± Ù…Ø­Ø¯Ø¯", className: "bg-muted text-muted-foreground" },
+  "full-time": { label: "دوام كامل", className: "bg-primary/10 text-primary" },
+  "part-time": { label: "دوام جزئي", className: "bg-secondary/10 text-secondary-foreground" },
+  commission: { label: "بالعمولة", className: "bg-accent/10 text-accent-foreground" },
+  unknown: { label: "غير محدد", className: "bg-muted text-muted-foreground" },
 };
 
 const formatDate = (value?: string | null) => {
@@ -190,11 +190,11 @@ export default function HREmployees() {
       <MainLayout>
         <div className="flex flex-col items-center justify-center py-16 space-y-4">
           <div className="text-center space-y-2">
-            <h3 className="text-lg font-semibold">Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†</h3>
+            <h3 className="text-lg font-semibold">حدث خطأ في تحميل بيانات الموظفين</h3>
             <p className="text-sm text-muted-foreground">{employeesError.message}</p>
           </div>
           <Button onClick={() => refetch()} variant="outline">
-            Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©
+            إعادة المحاولة
           </Button>
         </div>
       </MainLayout>
@@ -207,9 +207,9 @@ export default function HREmployees() {
         {/* Header */}
         <div className="flex items-center justify-between animate-slide-right">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Ù…Ù„ÙØ§Øª Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†</h1>
+            <h1 className="text-3xl font-bold text-foreground">ملفات الموظفين</h1>
             <p className="text-muted-foreground mt-1">
-              Ø¥Ø¯Ø§Ø±Ø© Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ† ÙˆØ§Ù„Ù…Ù„ÙØ§Øª Ø§Ù„Ø´Ø®ØµÙŠØ©
+              إدارة بيانات الموظفين والملفات الشخصية
             </p>
           </div>
           <AddEmployeeDialog />
@@ -223,7 +223,7 @@ export default function HREmployees() {
                 <Users className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†</p>
+                <p className="text-sm text-muted-foreground">إجمالي الموظفين</p>
                 <p className="text-2xl font-bold">{employees.length}</p>
               </div>
             </div>
@@ -234,7 +234,7 @@ export default function HREmployees() {
                 <Briefcase className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ù…ÙˆØ¸ÙÙŠÙ† Ù†Ø´Ø·ÙŠÙ†</p>
+                <p className="text-sm text-muted-foreground">موظفين نشطين</p>
                 <p className="text-2xl font-bold">
                   {activeCount}
                 </p>
@@ -247,7 +247,7 @@ export default function HREmployees() {
                 <Calendar className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">ÙÙŠ Ø¥Ø¬Ø§Ø²Ø©</p>
+                <p className="text-sm text-muted-foreground">في إجازة</p>
                 <p className="text-2xl font-bold">
                   {onLeaveCount}
                 </p>
@@ -260,7 +260,7 @@ export default function HREmployees() {
                 <Clock className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ø¹Ù‚ÙˆØ¯ ØªÙ†ØªÙ‡ÙŠ Ù‚Ø±ÙŠØ¨Ø§Ù‹</p>
+                <p className="text-sm text-muted-foreground">عقود تنتهي قريباً</p>
                 <p className="text-2xl font-bold">
                   {contractExpiringSoon.length}
                 </p>
@@ -274,7 +274,7 @@ export default function HREmployees() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Ø¨Ø­Ø« Ø¨Ø§Ù„Ø§Ø³Ù… Ø£Ùˆ Ø§Ù„ÙƒÙˆØ¯ Ø£Ùˆ Ø§Ù„Ù‚Ø³Ù…..."
+              placeholder="بحث بالاسم أو الكود أو القسم..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-10"
@@ -282,21 +282,21 @@ export default function HREmployees() {
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="Ø§Ù„Ø­Ø§Ù„Ø©" />
+              <SelectValue placeholder="الحالة" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ø§Ù„Ø§Øª</SelectItem>
-              <SelectItem value="active">Ù†Ø´Ø·</SelectItem>
-              <SelectItem value="on-leave">ÙÙŠ Ø¥Ø¬Ø§Ø²Ø©</SelectItem>
-              <SelectItem value="suspended">Ù…ÙˆÙ‚ÙˆÙ</SelectItem>
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              <SelectItem value="active">نشط</SelectItem>
+              <SelectItem value="on-leave">في إجازة</SelectItem>
+              <SelectItem value="suspended">موقوف</SelectItem>
             </SelectContent>
           </Select>
           <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="Ø§Ù„Ù‚Ø³Ù…" />
+              <SelectValue placeholder="القسم" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø£Ù‚Ø³Ø§Ù…</SelectItem>
+              <SelectItem value="all">جميع الأقسام</SelectItem>
               {departments.map((dept) => (
                 <SelectItem key={dept} value={dept}>
                   {dept}
@@ -304,7 +304,7 @@ export default function HREmployees() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline">ØªØµØ¯ÙŠØ±</Button>
+          <Button variant="outline">تصدير</Button>
         </div>
 
         {/* Table */}
@@ -312,14 +312,14 @@ export default function HREmployees() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">Ø§Ù„ÙƒÙˆØ¯</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ù…ÙˆØ¸Ù</TableHead>
-                <TableHead className="text-right">Ø§Ù„ÙˆØ¸ÙŠÙØ©</TableHead>
-                <TableHead className="text-right">Ù†ÙˆØ¹ Ø§Ù„ØªØ¹Ø§Ù‚Ø¯</TableHead>
-                <TableHead className="text-right">ØªØ§Ø±ÙŠØ® Ø§Ù„ØªØ¹ÙŠÙŠÙ†</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø±Ø§ØªØ¨</TableHead>
-                <TableHead className="text-right">Ø±ØµÙŠØ¯ Ø§Ù„Ø¥Ø¬Ø§Ø²Ø§Øª</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø­Ø§Ù„Ø©</TableHead>
+                <TableHead className="text-right">الكود</TableHead>
+                <TableHead className="text-right">الموظف</TableHead>
+                <TableHead className="text-right">الوظيفة</TableHead>
+                <TableHead className="text-right">نوع التعاقد</TableHead>
+                <TableHead className="text-right">تاريخ التعيين</TableHead>
+                <TableHead className="text-right">الراتب</TableHead>
+                <TableHead className="text-right">رصيد الإجازات</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
@@ -387,24 +387,24 @@ export default function HREmployees() {
                         <DropdownMenuContent align="start">
                           <DropdownMenuItem>
                             <Eye className="ml-2 h-4 w-4" />
-                            Ø¹Ø±Ø¶ Ø§Ù„Ù…Ù„Ù Ø§Ù„ÙƒØ§Ù…Ù„
+                            عرض الملف الكامل
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Edit className="ml-2 h-4 w-4" />
-                            ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª
+                            تعديل البيانات
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <FileText className="ml-2 h-4 w-4" />
-                            Ø§Ù„Ù…Ø³ØªÙ†Ø¯Ø§Øª
+                            المستندات
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Clock className="ml-2 h-4 w-4" />
-                            Ø³Ø¬Ù„ Ø§Ù„Ø­Ø¶ÙˆØ±
+                            سجل الحضور
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive">
                             <Trash2 className="ml-2 h-4 w-4" />
-                            Ø­Ø°Ù
+                            حذف
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

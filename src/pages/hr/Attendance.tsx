@@ -49,9 +49,9 @@ import {
 import { useEmployees } from "@/hooks/queries/useProfiles";
 
 const statusConfig = {
-  present: { label: "Ø­Ø§Ø¶Ø±", className: "bg-success/10 text-success border-success/20", icon: UserCheck },
-  late: { label: "Ù…ØªØ£Ø®Ø±", className: "bg-warning/10 text-warning border-warning/20", icon: AlertTriangle },
-  absent: { label: "ØºØ§Ø¦Ø¨", className: "bg-destructive/10 text-destructive border-destructive/20", icon: UserX },
+  present: { label: "حاضر", className: "bg-success/10 text-success border-success/20", icon: UserCheck },
+  late: { label: "متأخر", className: "bg-warning/10 text-warning border-warning/20", icon: AlertTriangle },
+  absent: { label: "غائب", className: "bg-destructive/10 text-destructive border-destructive/20", icon: UserX },
 };
 
 const workStartMinutes = 9 * 60;
@@ -200,11 +200,11 @@ export default function Attendance() {
       <MainLayout>
         <div className="flex flex-col items-center justify-center py-16 space-y-4">
           <div className="text-center space-y-2">
-            <h3 className="text-lg font-semibold">Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ ØªØ­Ù…ÙŠÙ„ Ø³Ø¬Ù„Ø§Øª Ø§Ù„Ø­Ø¶ÙˆØ±</h3>
+            <h3 className="text-lg font-semibold">حدث خطأ في تحميل سجلات الحضور</h3>
             <p className="text-sm text-muted-foreground">{error.message}</p>
           </div>
           <Button onClick={() => refetch()} variant="outline">
-            Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø©
+            إعادة المحاولة
           </Button>
         </div>
       </MainLayout>
@@ -217,28 +217,28 @@ export default function Attendance() {
         {/* Header */}
         <div className="flex items-center justify-between animate-slide-right">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Ø§Ù„Ø­Ø¶ÙˆØ± ÙˆØ§Ù„Ø§Ù†ØµØ±Ø§Ù</h1>
+            <h1 className="text-3xl font-bold text-foreground">الحضور والانصراف</h1>
             <p className="text-muted-foreground mt-1">
-              ØªØ³Ø¬ÙŠÙ„ ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ø­Ø¶ÙˆØ± Ø§Ù„Ù…ÙˆØ¸ÙÙŠÙ†
+              تسجيل ومتابعة حضور الموظفين
             </p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="gradient-primary">
                 <Plus className="ml-2 h-4 w-4" />
-                ØªØ³Ø¬ÙŠÙ„ Ø­Ø¶ÙˆØ±
+                تسجيل حضور
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>ØªØ³Ø¬ÙŠÙ„ Ø­Ø¶ÙˆØ± ÙŠØ¯ÙˆÙŠ</DialogTitle>
+                <DialogTitle>تسجيل حضور يدوي</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Ø§Ù„Ù…ÙˆØ¸Ù</Label>
+                  <Label>الموظف</Label>
                   <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Ø§Ø®ØªØ± Ø§Ù„Ù…ÙˆØ¸Ù" />
+                      <SelectValue placeholder="اختر الموظف" />
                     </SelectTrigger>
                     <SelectContent>
                       {employees.map((emp) => (
@@ -251,7 +251,7 @@ export default function Attendance() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>ÙˆÙ‚Øª Ø§Ù„Ø­Ø¶ÙˆØ±</Label>
+                    <Label>وقت الحضور</Label>
                     <Input
                       type="time"
                       value={checkInTime}
@@ -259,7 +259,7 @@ export default function Attendance() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>ÙˆÙ‚Øª Ø§Ù„Ø§Ù†ØµØ±Ø§Ù</Label>
+                    <Label>وقت الانصراف</Label>
                     <Input
                       type="time"
                       value={checkOutTime}
@@ -270,14 +270,14 @@ export default function Attendance() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Ø¥Ù„ØºØ§Ø¡
+                  إلغاء
                 </Button>
                 <Button
                   className="gradient-primary"
                   onClick={handleAddAttendance}
                   disabled={!selectedEmployee}
                 >
-                  ØªØ³Ø¬ÙŠÙ„
+                  تسجيل
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -292,7 +292,7 @@ export default function Attendance() {
                 <UserCheck className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ø­Ø§Ø¶Ø±ÙŠÙ†</p>
+                <p className="text-sm text-muted-foreground">حاضرين</p>
                 <p className="text-3xl font-bold text-success">{todayStats.present}</p>
               </div>
             </div>
@@ -303,7 +303,7 @@ export default function Attendance() {
                 <Clock className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Ù…ØªØ£Ø®Ø±ÙŠÙ†</p>
+                <p className="text-sm text-muted-foreground">متأخرين</p>
                 <p className="text-3xl font-bold text-warning">{todayStats.late}</p>
               </div>
             </div>
@@ -314,7 +314,7 @@ export default function Attendance() {
                 <UserX className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">ØºØ§Ø¦Ø¨ÙŠÙ†</p>
+                <p className="text-sm text-muted-foreground">غائبين</p>
                 <p className="text-3xl font-bold text-destructive">{todayStats.absent}</p>
               </div>
             </div>
@@ -326,7 +326,7 @@ export default function Attendance() {
           <div className="relative flex-1 max-w-md">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Ø¨Ø­Ø« Ø¨Ø§Ù„Ø§Ø³Ù…..."
+              placeholder="بحث بالاسم..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pr-10"
@@ -344,18 +344,18 @@ export default function Attendance() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-36">
               <Filter className="ml-2 h-4 w-4" />
-              <SelectValue placeholder="Ø§Ù„Ø­Ø§Ù„Ø©" />
+              <SelectValue placeholder="الحالة" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Ø§Ù„ÙƒÙ„</SelectItem>
-              <SelectItem value="present">Ø­Ø§Ø¶Ø±</SelectItem>
-              <SelectItem value="late">Ù…ØªØ£Ø®Ø±</SelectItem>
-              <SelectItem value="absent">ØºØ§Ø¦Ø¨</SelectItem>
+              <SelectItem value="all">الكل</SelectItem>
+              <SelectItem value="present">حاضر</SelectItem>
+              <SelectItem value="late">متأخر</SelectItem>
+              <SelectItem value="absent">غائب</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline">
             <Download className="ml-2 h-4 w-4" />
-            ØªØµØ¯ÙŠØ±
+            تصدير
           </Button>
         </div>
 
@@ -364,13 +364,13 @@ export default function Attendance() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-right">Ø§Ù„Ù…ÙˆØ¸Ù</TableHead>
-                <TableHead className="text-right">Ø§Ù„ØªØ§Ø±ÙŠØ®</TableHead>
-                <TableHead className="text-right">ÙˆÙ‚Øª Ø§Ù„Ø­Ø¶ÙˆØ±</TableHead>
-                <TableHead className="text-right">ÙˆÙ‚Øª Ø§Ù„Ø§Ù†ØµØ±Ø§Ù</TableHead>
-                <TableHead className="text-right">Ø§Ù„ØªØ£Ø®ÙŠØ±</TableHead>
-                <TableHead className="text-right">Ø§Ù„Ø­Ø§Ù„Ø©</TableHead>
-                <TableHead className="text-right">Ù…Ù„Ø§Ø­Ø¸Ø§Øª</TableHead>
+                <TableHead className="text-right">الموظف</TableHead>
+                <TableHead className="text-right">التاريخ</TableHead>
+                <TableHead className="text-right">وقت الحضور</TableHead>
+                <TableHead className="text-right">وقت الانصراف</TableHead>
+                <TableHead className="text-right">التأخير</TableHead>
+                <TableHead className="text-right">الحالة</TableHead>
+                <TableHead className="text-right">ملاحظات</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -423,7 +423,7 @@ export default function Attendance() {
                     </TableCell>
                     <TableCell>
                       {lateMinutes ? (
-                        <span className="text-warning font-medium">{lateMinutes} Ø¯Ù‚ÙŠÙ‚Ø©</span>
+                        <span className="text-warning font-medium">{lateMinutes} دقيقة</span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
                       )}
