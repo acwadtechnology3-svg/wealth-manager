@@ -34,21 +34,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { useWithdrawalsWithClients, useCreateWithdrawal } from "@/hooks/queries/useWithdrawals";
+import {
+  useWithdrawalsWithClients,
+  useCreateWithdrawal,
+  useWithdrawalsByDeposit,
+} from "@/hooks/queries/useWithdrawals";
 import { useClientsWithDeposits } from "@/hooks/queries/useClients";
 import { useMeetings } from "@/hooks/queries/useMeetings";
 import { usePosters } from "@/hooks/queries/usePosters";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 type CalendarEvent = {
+  id?: string;
   date: string;
   type: "withdraw" | "profit" | "deposit" | "meeting" | "poster";
   client?: string;
+  clientCode?: string;
+  clientPhone?: string;
   amount?: number;
   status?: "done" | "upcoming" | "late";
   title?: string; // For meetings and posters
   description?: string; // For meetings
   responsibleEmployee?: string; // For meetings
+  depositId?: string;
+  depositNumber?: string;
+  depositAmount?: number;
+  profitRate?: number;
+  depositDate?: string;
+  depositStatus?: string;
 };
 
 const eventConfig = {
@@ -71,6 +84,7 @@ export default function FinancialCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   // Add Event Dialog State
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -82,6 +96,10 @@ export default function FinancialCalendar() {
   // Fetch clients with deposits for the dialog
   const { data: clients = [] } = useClientsWithDeposits();
   const createWithdrawal = useCreateWithdrawal();
+
+  const selectedEventDepositId = selectedEvent?.depositId;
+  const { data: depositWithdrawals = [], isLoading: isLoadingDepositWithdrawals } =
+    useWithdrawalsByDeposit(selectedEventDepositId);
 
   // Calculate date range for the current month
   const monthStart = useMemo(() => {
@@ -124,15 +142,25 @@ export default function FinancialCalendar() {
       }
 
       return {
+        id: withdrawal.id,
         date: withdrawal.due_date,
         type: "withdraw" as const,
         client: clientName,
+        clientCode: withdrawal.client_deposits?.clients?.code,
+        clientPhone: withdrawal.client_deposits?.clients?.phone,
         amount: withdrawal.amount,
         status: eventStatus,
+        depositId: withdrawal.deposit_id,
+        depositNumber: withdrawal.client_deposits?.deposit_number,
+        depositAmount: withdrawal.client_deposits?.amount,
+        profitRate: withdrawal.client_deposits?.profit_rate,
+        depositDate: withdrawal.client_deposits?.deposit_date,
+        depositStatus: withdrawal.client_deposits?.status,
       };
     });
 
     const meetingEvents = meetings.map((meeting) => ({
+      id: meeting.id,
       date: meeting.meeting_date,
       type: "meeting" as const,
       title: meeting.title,
@@ -142,6 +170,7 @@ export default function FinancialCalendar() {
     }));
 
     const posterEvents = posters.map((poster) => ({
+      id: poster.id,
       date: poster.poster_date,
       type: "poster" as const,
       title: poster.title,
@@ -150,6 +179,35 @@ export default function FinancialCalendar() {
 
     return [...withdrawalEvents, ...meetingEvents, ...posterEvents];
   }, [withdrawals, meetings, posters]);
+
+  const selectedDepositSummary = useMemo(() => {
+    const totalScheduled = depositWithdrawals.reduce((sum, w) => sum + w.amount, 0);
+    const totalCompleted = depositWithdrawals
+      .filter((w) => w.status === "completed")
+      .reduce((sum, w) => sum + w.amount, 0);
+    const totalUpcoming = depositWithdrawals
+      .filter((w) => w.status === "upcoming")
+      .reduce((sum, w) => sum + w.amount, 0);
+    const totalOverdue = depositWithdrawals
+      .filter((w) => w.status === "overdue")
+      .reduce((sum, w) => sum + w.amount, 0);
+    const depositAmount = selectedEvent?.depositAmount || 0;
+    const availableAmount = Math.max(depositAmount - totalCompleted, 0);
+
+    return {
+      totalScheduled,
+      totalCompleted,
+      totalUpcoming,
+      totalOverdue,
+      availableAmount,
+    };
+  }, [depositWithdrawals, selectedEvent?.depositAmount]);
+
+  const getEventLabel = (event: CalendarEvent) => event.client || event.title || "حدث";
+  const formatMoney = (value?: number) =>
+    typeof value === "number" ? `${value.toLocaleString()} ج.م` : "-";
+  const selectedTypeConfig = selectedEvent ? eventConfig[selectedEvent.type] : null;
+  const selectedStatusConfig = selectedEvent?.status ? statusConfig[selectedEvent.status] : null;
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -230,6 +288,158 @@ export default function FinancialCalendar() {
 
   return (
     <MainLayout>
+      <Dialog
+        open={!!selectedEvent}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEvent(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>{selectedEvent ? getEventLabel(selectedEvent) : "تفاصيل الحدث"}</DialogTitle>
+            {selectedEvent && (
+              <DialogDescription>
+                {selectedTypeConfig?.label} • {selectedEvent.date}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedTypeConfig && (
+                  <Badge className={cn("h-6", selectedTypeConfig.color)}>
+                    {selectedTypeConfig.label}
+                  </Badge>
+                )}
+                {selectedStatusConfig && (
+                  <Badge className={cn("h-6", selectedStatusConfig.color)}>
+                    {selectedStatusConfig.label}
+                  </Badge>
+                )}
+              </div>
+
+              {selectedEvent.client && (
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm font-semibold mb-3">بيانات العميل</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">الاسم</p>
+                      <p className="font-medium">{selectedEvent.client}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">الكود</p>
+                      <p className="font-medium">{selectedEvent.clientCode || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">الهاتف</p>
+                      <p className="font-medium">{selectedEvent.clientPhone || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">تاريخ السحب</p>
+                      <p className="font-medium">{selectedEvent.date}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedEvent.depositId && (
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm font-semibold mb-3">تفاصيل الإيداع</p>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">رقم الإيداع</p>
+                      <p className="font-medium">{selectedEvent.depositNumber || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">تاريخ الإيداع</p>
+                      <p className="font-medium">{selectedEvent.depositDate || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">قيمة الإيداع</p>
+                      <p className="font-medium">{formatMoney(selectedEvent.depositAmount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">نسبة الربح</p>
+                      <p className="font-medium">
+                        {typeof selectedEvent.profitRate === "number" ? `${selectedEvent.profitRate}%` : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">مبلغ السحب</p>
+                      <p className="font-medium">{formatMoney(selectedEvent.amount)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">حالة الإيداع</p>
+                      <p className="font-medium">{selectedEvent.depositStatus || "-"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedEvent.depositId && (
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold">الرصيد المتاح</p>
+                    <p className="text-sm font-semibold text-success">
+                      {formatMoney(selectedDepositSummary.availableAmount)}
+                    </p>
+                  </div>
+                  {isLoadingDepositWithdrawals ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">إجمالي المسحوبات</p>
+                        <p className="font-medium">{formatMoney(selectedDepositSummary.totalScheduled)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">منصرف</p>
+                        <p className="font-medium">{formatMoney(selectedDepositSummary.totalCompleted)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">قادم</p>
+                        <p className="font-medium">{formatMoney(selectedDepositSummary.totalUpcoming)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">متأخر</p>
+                        <p className="font-medium">{formatMoney(selectedDepositSummary.totalOverdue)}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedEvent.type === "meeting" && (
+                <div className="rounded-lg border p-4">
+                  <p className="text-sm font-semibold mb-3">تفاصيل الاجتماع</p>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">المسؤول</p>
+                      <p className="font-medium">{selectedEvent.responsibleEmployee || "-"}</p>
+                    </div>
+                    {selectedEvent.description && (
+                      <div>
+                        <p className="text-muted-foreground">الوصف</p>
+                        <p className="font-medium">{selectedEvent.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedEvent(null)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between animate-slide-right">
@@ -428,15 +638,17 @@ export default function FinancialCalendar() {
                       const config = eventConfig[event.type as keyof typeof eventConfig];
                       const Icon = config.icon;
                       return (
-                        <div
+                        <button
                           key={idx}
+                          type="button"
+                          onClick={() => setSelectedEvent(event)}
                           className={cn(
-                            "flex items-center gap-1 rounded px-2 py-1 text-xs",
+                            "flex w-full items-center gap-1 rounded px-2 py-1 text-xs transition-colors hover:opacity-80",
                             config.color
                           )}
                         >
                           <Icon className="h-3 w-3 shrink-0" />
-                          <span className="truncate">{event.client}</span>
+                          <span className="truncate">{getEventLabel(event)}</span>
                           <Badge
                             className={cn(
                               "mr-auto h-4 px-1 text-[10px]",
@@ -445,7 +657,7 @@ export default function FinancialCalendar() {
                           >
                             {statusConfig[event.status as keyof typeof statusConfig].label}
                           </Badge>
-                        </div>
+                        </button>
                       );
                     })}
                     {dayEvents.length > 3 && (
@@ -478,18 +690,23 @@ export default function FinancialCalendar() {
                 </div>
                 <div className="space-y-3">
                   {filteredEvents.slice(0, 4).map((event, idx) => (
-                    <div key={idx} className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedEvent(event)}
+                      className="flex w-full items-center justify-between rounded-lg bg-muted/50 p-3 text-right transition-colors hover:bg-muted"
+                    >
                       <div>
-                        <p className="font-medium">{event.client}</p>
+                        <p className="font-medium">{getEventLabel(event)}</p>
                         <p className="text-xs text-muted-foreground">{event.date}</p>
                       </div>
                       <div className="text-left">
-                        <p className="font-semibold">{event.amount.toLocaleString()} ج.م</p>
+                        <p className="font-semibold">{formatMoney(event.amount)}</p>
                         <Badge className={cn("h-5", statusConfig[event.status as keyof typeof statusConfig].color)}>
                           {statusConfig[event.status as keyof typeof statusConfig].label}
                         </Badge>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>

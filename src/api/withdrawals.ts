@@ -16,7 +16,13 @@ import { ApiError } from '@/lib/errors';
  */
 export interface WithdrawalWithClient extends WithdrawalSchedule {
   client_deposits?: {
+    id: string;
     client_id: string;
+    amount: number;
+    profit_rate: number;
+    deposit_number: string;
+    deposit_date: string;
+    status: string;
     clients?: {
       name: string;
       code: string;
@@ -84,7 +90,13 @@ export const withdrawalsApi = {
         .select(`
           *,
           client_deposits!inner(
+            id,
             client_id,
+            amount,
+            profit_rate,
+            deposit_number,
+            deposit_date,
+            status,
             clients!inner(
               name,
               code,
