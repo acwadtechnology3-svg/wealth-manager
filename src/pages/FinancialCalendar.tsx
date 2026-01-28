@@ -85,6 +85,7 @@ export default function FinancialCalendar() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   // Add Event Dialog State
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -208,6 +209,10 @@ export default function FinancialCalendar() {
     typeof value === "number" ? `${value.toLocaleString()} ج.م` : "-";
   const selectedTypeConfig = selectedEvent ? eventConfig[selectedEvent.type] : null;
   const selectedStatusConfig = selectedEvent?.status ? statusConfig[selectedEvent.status] : null;
+  const selectedDayEvents = useMemo(
+    () => (selectedDay ? getEventsForDate(selectedDay) : []),
+    [selectedDay, events, typeFilter, statusFilter]
+  );
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -221,18 +226,21 @@ export default function FinancialCalendar() {
 
   const { daysInMonth, startingDay } = getDaysInMonth(currentDate);
 
-  const getEventsForDay = (day: number) => {
+  const getDateStringForDay = (day: number) => {
     const year = currentDate.getFullYear();
     const month = (currentDate.getMonth() + 1).toString().padStart(2, "0");
     const dayStr = day.toString().padStart(2, "0");
-    const dateStr = `${year}-${month}-${dayStr}`;
+    return `${year}-${month}-${dayStr}`;
+  };
 
-    return events.filter((e) => {
+  const getEventsForDate = (dateStr: string) =>
+    events.filter((e) => {
       const matchesType = typeFilter === "all" || e.type === typeFilter;
       const matchesStatus = statusFilter === "all" || e.status === statusFilter;
       return e.date === dateStr && matchesType && matchesStatus;
     });
-  };
+
+  const getEventsForDay = (day: number) => getEventsForDate(getDateStringForDay(day));
 
   const navigateMonth = (direction: number) => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
@@ -440,6 +448,70 @@ export default function FinancialCalendar() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog
+        open={!!selectedDay}
+        onOpenChange={(open) => {
+          if (!open) setSelectedDay(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>تفاصيل اليوم</DialogTitle>
+            <DialogDescription>
+              {selectedDay} • {selectedDayEvents.length} حدث
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {selectedDayEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center">لا توجد أحداث لهذا اليوم</p>
+            ) : (
+              selectedDayEvents.map((event, idx) => {
+                const config = eventConfig[event.type as keyof typeof eventConfig];
+                const Icon = config.icon;
+                return (
+                  <button
+                    key={`${event.id ?? event.date}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDay(null);
+                      setSelectedEvent(event);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-lg border px-4 py-3 text-right transition-colors hover:bg-muted/60",
+                      config.color
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", config.color)}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{getEventLabel(event)}</p>
+                        <p className="text-xs text-muted-foreground">{event.date}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {typeof event.amount === "number" && (
+                        <p className="text-sm font-semibold">{formatMoney(event.amount)}</p>
+                      )}
+                      {event.status && (
+                        <Badge className={cn("h-5", statusConfig[event.status].color)}>
+                          {statusConfig[event.status].label}
+                        </Badge>
+                      )}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedDay(null)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between animate-slide-right">
@@ -617,11 +689,14 @@ export default function FinancialCalendar() {
                 currentDate.getMonth() === today.getMonth() &&
                 currentDate.getFullYear() === today.getFullYear();
 
+              const dayDateStr = getDateStringForDay(day);
               return (
                 <div
                   key={day}
+                  onClick={() => dayEvents.length > 0 && setSelectedDay(dayDateStr)}
                   className={cn(
-                    "min-h-32 border-b border-l p-2 transition-colors hover:bg-muted/50",
+                    "min-h-32 border-b border-l p-2 transition-colors",
+                    dayEvents.length > 0 && "cursor-pointer hover:bg-muted/50",
                     isToday && "bg-primary/5"
                   )}
                 >
@@ -641,7 +716,10 @@ export default function FinancialCalendar() {
                         <button
                           key={idx}
                           type="button"
-                          onClick={() => setSelectedEvent(event)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEvent(event);
+                          }}
                           className={cn(
                             "flex w-full items-center gap-1 rounded px-2 py-1 text-xs transition-colors hover:opacity-80",
                             config.color
