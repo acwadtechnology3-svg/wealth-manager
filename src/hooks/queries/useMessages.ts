@@ -34,6 +34,28 @@ export function useMessages(filters?: {
  * Hook to fetch conversation between two users
  */
 export function useConversation(userId1: string | undefined, userId2: string | undefined, limit?: number) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!userId1 || !userId2) return;
+
+    const channel = messagesApi.subscribeToDirectMessages(userId1, (newMessage) => {
+      const isRelevant =
+        (newMessage.sender_id === userId1 && newMessage.recipient_id === userId2) ||
+        (newMessage.sender_id === userId2 && newMessage.recipient_id === userId1);
+
+      if (isRelevant) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.messages.conversation(userId1, userId2),
+        });
+      }
+    });
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [userId1, userId2, queryClient]);
+
   return useQuery({
     queryKey: queryKeys.messages.conversation(userId1!, userId2!),
     queryFn: () => messagesApi.getConversation(userId1!, userId2!, limit),
@@ -160,35 +182,53 @@ export function useSendMessage() {
       await queryClient.cancelQueries({ queryKey: queryKeys.messages.lists() });
 
       // Snapshot previous value
-      const previousMessages = queryClient.getQueryData<TeamMessageWithProfile[]>(
-        queryKeys.messages.list({ isGroupMessage: newMessage.recipient_id === null })
-      );
+      const listKey = queryKeys.messages.list({ isGroupMessage: newMessage.recipient_id === null });
+      const conversationKey = newMessage.recipient_id
+        ? queryKeys.messages.conversation(newMessage.sender_id, newMessage.recipient_id)
+        : null;
+
+      if (conversationKey) {
+        await queryClient.cancelQueries({ queryKey: conversationKey });
+      }
+
+      const previousMessages = queryClient.getQueryData<TeamMessageWithProfile[]>(listKey);
+      const previousConversation = conversationKey
+        ? queryClient.getQueryData<TeamMessageWithProfile[]>(conversationKey)
+        : undefined;
 
       // Optimistically update cache
-      if (previousMessages) {
-        const optimisticMessage: Partial<TeamMessageWithProfile> = {
-          ...newMessage,
-          id: `temp-${Date.now()}`,
-          created_at: new Date().toISOString(),
-          is_read: false,
-        };
+      const optimisticMessage: Partial<TeamMessageWithProfile> = {
+        ...newMessage,
+        id: `temp-${Date.now()}`,
+        created_at: new Date().toISOString(),
+        is_read: false,
+      };
 
+      if (previousMessages) {
         queryClient.setQueryData(
-          queryKeys.messages.list({ isGroupMessage: newMessage.recipient_id === null }),
+          listKey,
           [...previousMessages, optimisticMessage as TeamMessageWithProfile]
         );
       }
 
-      return { previousMessages };
+      if (conversationKey && previousConversation) {
+        queryClient.setQueryData(
+          conversationKey,
+          [...previousConversation, optimisticMessage as TeamMessageWithProfile]
+        );
+      }
+
+      return { previousMessages, previousConversation, listKey, conversationKey };
     },
 
     onError: (error, newMessage, context) => {
       // Rollback on error
-      if (context?.previousMessages) {
-        queryClient.setQueryData(
-          queryKeys.messages.list({ isGroupMessage: newMessage.recipient_id === null }),
-          context.previousMessages
-        );
+      if (context && context.previousMessages) {
+        queryClient.setQueryData(context.listKey, context.previousMessages);
+      }
+
+      if (context && context.conversationKey && context.previousConversation) {
+        queryClient.setQueryData(context.conversationKey, context.previousConversation);
       }
 
       toast({
@@ -198,9 +238,12 @@ export function useSendMessage() {
       });
     },
 
-    onSettled: () => {
+    onSettled: (_data, _error, _variables, context) => {
       // Always refetch after error or success
       queryClient.invalidateQueries({ queryKey: queryKeys.messages.lists() });
+      if (context?.conversationKey) {
+        queryClient.invalidateQueries({ queryKey: context.conversationKey });
+      }
     },
   });
 }

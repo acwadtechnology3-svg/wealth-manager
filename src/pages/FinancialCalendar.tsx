@@ -209,6 +209,12 @@ export default function FinancialCalendar() {
     typeof value === "number" ? `${value.toLocaleString()} ج.م` : "-";
   const selectedTypeConfig = selectedEvent ? eventConfig[selectedEvent.type] : null;
   const selectedStatusConfig = selectedEvent?.status ? statusConfig[selectedEvent.status] : null;
+  const getEventsForDate = (dateStr: string) =>
+    events.filter((e) => {
+      const matchesType = typeFilter === "all" || e.type === typeFilter;
+      const matchesStatus = statusFilter === "all" || e.status === statusFilter;
+      return e.date === dateStr && matchesType && matchesStatus;
+    });
   const selectedDayEvents = useMemo(
     () => (selectedDay ? getEventsForDate(selectedDay) : []),
     [selectedDay, events, typeFilter, statusFilter]
@@ -232,13 +238,6 @@ export default function FinancialCalendar() {
     const dayStr = day.toString().padStart(2, "0");
     return `${year}-${month}-${dayStr}`;
   };
-
-  const getEventsForDate = (dateStr: string) =>
-    events.filter((e) => {
-      const matchesType = typeFilter === "all" || e.type === typeFilter;
-      const matchesStatus = statusFilter === "all" || e.status === statusFilter;
-      return e.date === dateStr && matchesType && matchesStatus;
-    });
 
   const getEventsForDay = (day: number) => getEventsForDate(getDateStringForDay(day));
 
