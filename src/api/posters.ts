@@ -5,6 +5,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { ApiError } from '@/lib/errors';
 import { logger } from '@/lib/logger';
+import type { Profile } from '@/types/database';
 
 const POSTERS_BUCKET = 'marketing-posters';
 const SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour
@@ -39,6 +40,45 @@ export interface PosterInsert {
 
 const sanitizeFilename = (name: string) =>
   name.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/_+/g, '_');
+
+const attachUploaderProfiles = async (
+  posters: MarketingPoster[]
+): Promise<MarketingPosterWithProfile[]> => {
+  if (posters.length === 0) return posters as MarketingPosterWithProfile[];
+
+  const userIds = Array.from(new Set(posters.map((poster) => poster.uploaded_by).filter(Boolean)));
+  if (userIds.length === 0) return posters as MarketingPosterWithProfile[];
+
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('user_id, full_name, email')
+    .in('user_id', userIds);
+
+  if (profilesError || !profilesData) {
+    return posters as MarketingPosterWithProfile[];
+  }
+
+  const profileMap = new Map<string, Profile>();
+  profilesData.forEach((profile) => {
+    if (profile.user_id) {
+      profileMap.set(profile.user_id, profile as Profile);
+    }
+  });
+
+  return posters.map((poster) => {
+    const uploaderProfile = profileMap.get(poster.uploaded_by);
+
+    return {
+      ...poster,
+      uploader: uploaderProfile
+        ? {
+            full_name: uploaderProfile.full_name,
+            email: uploaderProfile.email,
+          }
+        : undefined,
+    };
+  });
+};
 
 export const postersApi = {
   async uploadFile(file: File): Promise<{ path: string; fileName: string; fileSize: number }> {
@@ -97,13 +137,7 @@ export const postersApi = {
     try {
       let query = supabase
         .from('marketing_posters')
-        .select(`
-          *,
-          uploader:profiles!marketing_posters_uploaded_by_fkey(
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .order('poster_date', { ascending: false });
 
       if (filters?.startDate) {
@@ -116,7 +150,7 @@ export const postersApi = {
 
       const { data, error } = await query;
       if (error) throw new ApiError(error.message, error.code, error.details);
-      return (data || []) as MarketingPosterWithProfile[];
+      return await attachUploaderProfiles((data || []) as MarketingPoster[]);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError('فشل في تحميل الملصقات', 'UNKNOWN_ERROR');
@@ -127,19 +161,14 @@ export const postersApi = {
     try {
       const { data, error } = await supabase
         .from('marketing_posters')
-        .select(`
-          *,
-          uploader:profiles!marketing_posters_uploaded_by_fkey(
-            full_name,
-            email
-          )
-        `)
+        .select('*')
         .eq('id', id)
         .single();
 
       if (error) throw new ApiError(error.message, error.code, error.details);
       if (!data) throw new ApiError('الملصق غير موجود', 'NOT_FOUND');
-      return data as MarketingPosterWithProfile;
+      const [poster] = await attachUploaderProfiles([data as MarketingPoster]);
+      return poster || (data as MarketingPosterWithProfile);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError('فشل في تحميل الملصق', 'UNKNOWN_ERROR');

@@ -4,7 +4,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { TeamMessage, TeamMessageInsert, TeamMessageUpdate } from '@/types/database';
+import type { TeamMessage, TeamMessageInsert, TeamMessageUpdate, Profile } from '@/types/database';
 import { ApiError } from '@/lib/errors';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -18,6 +18,44 @@ export interface TeamMessageWithProfile extends TeamMessage {
     avatar_url: string | null;
   };
 }
+
+const attachSenderProfiles = async (messages: TeamMessage[]): Promise<TeamMessageWithProfile[]> => {
+  if (messages.length === 0) return messages as TeamMessageWithProfile[];
+
+  const userIds = Array.from(new Set(messages.map((msg) => msg.sender_id).filter(Boolean)));
+  if (userIds.length === 0) return messages as TeamMessageWithProfile[];
+
+  const { data: profilesData, error: profilesError } = await supabase
+    .from('profiles')
+    .select('user_id, full_name, email, avatar_url')
+    .in('user_id', userIds);
+
+  if (profilesError || !profilesData) {
+    return messages as TeamMessageWithProfile[];
+  }
+
+  const profileMap = new Map<string, Profile>();
+  profilesData.forEach((profile) => {
+    if (profile.user_id) {
+      profileMap.set(profile.user_id, profile as Profile);
+    }
+  });
+
+  return messages.map((message) => {
+    const senderProfile = profileMap.get(message.sender_id);
+
+    return {
+      ...message,
+      profiles: senderProfile
+        ? {
+            full_name: senderProfile.full_name,
+            email: senderProfile.email,
+            avatar_url: senderProfile.avatar_url,
+          }
+        : undefined,
+    };
+  });
+};
 
 /**
  * Team messages API functions
@@ -35,14 +73,7 @@ export const messagesApi = {
     try {
       let query = supabase
         .from('team_messages')
-        .select(`
-          *,
-          profiles!team_messages_sender_id_fkey(
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (filters?.userId) {
@@ -68,7 +99,7 @@ export const messagesApi = {
       const { data, error } = await query;
 
       if (error) throw new ApiError(error.message, error.code, error.details);
-      return (data || []) as TeamMessageWithProfile[];
+      return await attachSenderProfiles((data || []) as TeamMessage[]);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError('فشل في تحميل الرسائل', 'UNKNOWN_ERROR');
@@ -82,14 +113,7 @@ export const messagesApi = {
     try {
       const { data, error } = await supabase
         .from('team_messages')
-        .select(`
-          *,
-          profiles!team_messages_sender_id_fkey(
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
+        .select('*')
         .or(
           `and(sender_id.eq.${userId1},recipient_id.eq.${userId2}),and(sender_id.eq.${userId2},recipient_id.eq.${userId1})`
         )
@@ -97,7 +121,7 @@ export const messagesApi = {
         .limit(limit);
 
       if (error) throw new ApiError(error.message, error.code, error.details);
-      return (data || []) as TeamMessageWithProfile[];
+      return await attachSenderProfiles((data || []) as TeamMessage[]);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError('فشل في تحميل المحادثة', 'UNKNOWN_ERROR');
@@ -111,20 +135,13 @@ export const messagesApi = {
     try {
       const { data, error } = await supabase
         .from('team_messages')
-        .select(`
-          *,
-          profiles!team_messages_sender_id_fkey(
-            full_name,
-            email,
-            avatar_url
-          )
-        `)
+        .select('*')
         .is('recipient_id', null)
         .order('created_at', { ascending: true })
         .limit(limit);
 
       if (error) throw new ApiError(error.message, error.code, error.details);
-      return (data || []) as TeamMessageWithProfile[];
+      return await attachSenderProfiles((data || []) as TeamMessage[]);
     } catch (error) {
       if (error instanceof ApiError) throw error;
       throw new ApiError('فشل في تحميل رسائل المجموعة', 'UNKNOWN_ERROR');
