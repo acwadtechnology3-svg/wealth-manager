@@ -23,14 +23,7 @@ export const auditLogApi = {
     try {
       let query = supabase
         .from('audit_log')
-        .select(`
-          *,
-          profiles:actor_user_id (
-            first_name,
-            last_name,
-            id
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       // Apply filters
