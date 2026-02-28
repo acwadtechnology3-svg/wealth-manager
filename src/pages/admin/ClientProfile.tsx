@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -38,6 +39,8 @@ import { cn } from "@/lib/utils";
 import { useClientFullDetails } from "@/hooks/queries/useClients";
 import { useTableAuditLogs } from "@/hooks/queries/useAuditLogs";
 import { useEmployees } from "@/hooks/queries/useProfiles";
+import { EditClientDialog } from "@/components/clients/EditClientDialog";
+import type { Client } from "@/types/database";
 
 const statusConfig = {
   active: { label: "نشط", className: "bg-success/10 text-success border-success/20", icon: CheckCircle },
@@ -69,10 +72,15 @@ const attachmentTypeLabels = {
 export default function ClientProfile() {
   const { clientId } = useParams();
   const navigate = useNavigate();
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const { data: client, isLoading, error } = useClientFullDetails(clientId);
   const { data: auditLogs = [] } = useTableAuditLogs('clients');
   const { data: employees = [] } = useEmployees();
+
+  const handleExportPDF = () => {
+    window.print();
+  };
 
   if (isLoading) {
     return (
@@ -128,11 +136,11 @@ export default function ClientProfile() {
               كود العميل: {client.code} • تاريخ التسجيل: {new Date(client.created_at).toLocaleDateString("ar-EG")}
             </p>
           </div>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setIsEditOpen(true)}>
             <Edit className="ml-2 h-4 w-4" />
             تعديل البيانات
           </Button>
-          <Button>
+          <Button onClick={handleExportPDF}>
             <Download className="ml-2 h-4 w-4" />
             تصدير PDF
           </Button>
@@ -485,6 +493,12 @@ export default function ClientProfile() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <EditClientDialog
+        client={client as unknown as Client}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+      />
     </MainLayout>
   );
 }

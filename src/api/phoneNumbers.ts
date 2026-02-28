@@ -90,7 +90,7 @@ export const phoneNumbersApi = {
         .from('phone_number_batches')
         .select(`
           *,
-          uploader:profiles!phone_number_batches_uploaded_by_fkey(
+          uploader:profiles!uploaded_by(
             full_name,
             email
           )
@@ -114,7 +114,7 @@ export const phoneNumbersApi = {
         .from('phone_numbers')
         .select(`
           *,
-          assignee:profiles!phone_numbers_assigned_to_fkey(
+          assignee:profiles!assigned_to(
             full_name,
             email,
             employee_code
@@ -140,7 +140,7 @@ export const phoneNumbersApi = {
         .from('phone_numbers')
         .select(`
           *,
-          assignee:profiles!phone_numbers_assigned_to_fkey(
+          assignee:profiles!assigned_to(
             full_name,
             email,
             employee_code
