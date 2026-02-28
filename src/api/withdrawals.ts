@@ -89,7 +89,7 @@ export const withdrawalsApi = {
         .from('withdrawal_schedules')
         .select(`
           *,
-          client_deposits!inner(
+          client_deposits(
             id,
             client_id,
             amount,
@@ -97,14 +97,15 @@ export const withdrawalsApi = {
             deposit_number,
             deposit_date,
             status,
-            clients!inner(
+            clients(
               name,
               code,
               phone
             )
           )
         `)
-        .order('due_date', { ascending: true });
+        .order('due_date', { ascending: true })
+        .limit(1000);
 
       if (filters?.status) {
         query = query.eq('status', filters.status);

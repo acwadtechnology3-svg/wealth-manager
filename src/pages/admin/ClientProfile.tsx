@@ -82,7 +82,7 @@ export default function ClientProfile() {
           <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
           <h2 className="text-xl font-semibold mb-2">العميل غير موجود</h2>
           <p className="text-muted-foreground mb-4">لم يتم العثور على العميل المطلوب</p>
-          <Button onClick={() => navigate("/admin")}>العودة للوحة الأدمن</Button>
+          <Button onClick={() => navigate("/clients")}>العودة لقائمة العملاء</Button>
         </div>
       </MainLayout>
     );
@@ -95,7 +95,7 @@ export default function ClientProfile() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4 animate-slide-right">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/clients")}>
             <ArrowRight className="h-5 w-5" />
           </Button>
           <div className="flex-1">
