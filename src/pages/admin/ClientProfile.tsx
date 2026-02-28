@@ -36,7 +36,8 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { useClientFullDetails } from "@/hooks/queries/useClients";
+import { useClient } from "@/hooks/queries/useClients";
+import { useClientDepositsWithSchedules } from "@/hooks/queries/useDeposits";
 import { useTableAuditLogs } from "@/hooks/queries/useAuditLogs";
 import { useEmployees } from "@/hooks/queries/useProfiles";
 import { EditClientDialog } from "@/components/clients/EditClientDialog";
@@ -74,9 +75,12 @@ export default function ClientProfile() {
   const navigate = useNavigate();
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const { data: client, isLoading, error } = useClientFullDetails(clientId);
+  const { data: client, isLoading: isClientLoading, error } = useClient(clientId);
+  const { data: deposits = [], isLoading: isDepositsLoading } = useClientDepositsWithSchedules(clientId);
   const { data: auditLogs = [] } = useTableAuditLogs('clients');
   const { data: employees = [] } = useEmployees();
+
+  const isLoading = isClientLoading || isDepositsLoading;
 
   const handleExportPDF = () => {
     window.print();
@@ -109,7 +113,6 @@ export default function ClientProfile() {
   const StatusIcon = statusConfig[client.status as keyof typeof statusConfig]?.icon ?? Clock;
   const statusInfo = statusConfig[client.status as keyof typeof statusConfig] ?? statusConfig.inactive;
 
-  const deposits = (client as any).client_deposits ?? [];
   const totalDeposited = deposits.reduce((sum: number, d: any) => sum + (d.amount || 0), 0);
 
   const assignedEmployee = client.assigned_to
@@ -495,7 +498,7 @@ export default function ClientProfile() {
       </div>
 
       <EditClientDialog
-        client={client as unknown as Client}
+        client={client as Client}
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
       />

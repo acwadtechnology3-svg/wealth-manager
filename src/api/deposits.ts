@@ -44,6 +44,51 @@ export const depositsApi = {
     }
   },
 
+  /**
+   * List all deposits for one client, each with their withdrawal schedules.
+   * Uses two flat queries (no nesting) to avoid PostgREST row-budget limits.
+   */
+  async listForClientWithSchedules(clientId: string): Promise<ClientDepositWithWithdrawals[]> {
+    try {
+      const { data: deposits, error: depositsError } = await supabase
+        .from('client_deposits')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('deposit_date', { ascending: false })
+        .limit(200);
+
+      if (depositsError) throw new ApiError(depositsError.message, depositsError.code, depositsError.details);
+
+      const depositList = deposits || [];
+      const depositIds = depositList.map((d) => d.id);
+
+      const schedulesByDeposit: Record<string, unknown[]> = {};
+      if (depositIds.length > 0) {
+        const { data: schedules, error: schedError } = await supabase
+          .from('withdrawal_schedules')
+          .select('*')
+          .in('deposit_id', depositIds)
+          .order('due_date', { ascending: true })
+          .limit(2000);
+
+        if (schedError) throw new ApiError(schedError.message, schedError.code, schedError.details);
+        for (const s of schedules || []) {
+          const did = (s as { deposit_id: string }).deposit_id;
+          (schedulesByDeposit[did] ??= []).push(s);
+        }
+      }
+
+      return depositList.map((d) => ({
+        ...d,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        withdrawal_schedules: (schedulesByDeposit[d.id] || []) as any,
+      })) as ClientDepositWithWithdrawals[];
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError('فشل في تحميل بيانات الإيداعات', 'UNKNOWN_ERROR');
+    }
+  },
+
   async list(filters?: {
     clientId?: string;
     status?: string;
