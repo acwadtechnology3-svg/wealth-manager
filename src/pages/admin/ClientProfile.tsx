@@ -36,6 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useClientFullDetails } from "@/hooks/queries/useClients";
 import { useTableAuditLogs } from "@/hooks/queries/useAuditLogs";
+import { useEmployees } from "@/hooks/queries/useProfiles";
 
 const statusConfig = {
   active: { label: "نشط", className: "bg-success/10 text-success border-success/20", icon: CheckCircle },
@@ -44,8 +45,15 @@ const statusConfig = {
   inactive: { label: "غير نشط", className: "bg-muted text-muted-foreground", icon: Clock },
 };
 
+const depositStatusConfig: Record<string, { label: string; className: string }> = {
+  active: { label: "نشط", className: "bg-success/10 text-success" },
+  completed: { label: "مكتمل", className: "bg-muted text-muted-foreground" },
+  withdrawn: { label: "منسحب", className: "bg-warning/10 text-warning" },
+  cancelled: { label: "ملغي", className: "bg-destructive/10 text-destructive" },
+};
+
 const withdrawalStatusConfig = {
-  completed: { label: "تم", className: "bg-success/10 text-success", icon: CheckCircle },
+  completed: { label: "تم السداد", className: "bg-success/10 text-success", icon: CheckCircle },
   upcoming: { label: "قادم", className: "bg-warning/10 text-warning", icon: Clock },
   overdue: { label: "متأخر", className: "bg-destructive/10 text-destructive", icon: AlertTriangle },
 };
@@ -63,6 +71,7 @@ export default function ClientProfile() {
 
   const { data: client, isLoading, error } = useClientFullDetails(clientId);
   const { data: auditLogs = [] } = useTableAuditLogs('clients');
+  const { data: employees = [] } = useEmployees();
 
   if (isLoading) {
     return (
@@ -88,7 +97,15 @@ export default function ClientProfile() {
     );
   }
 
-  const StatusIcon = statusConfig[client.status].icon;
+  const StatusIcon = statusConfig[client.status as keyof typeof statusConfig]?.icon ?? Clock;
+  const statusInfo = statusConfig[client.status as keyof typeof statusConfig] ?? statusConfig.inactive;
+
+  const deposits = (client as any).client_deposits ?? [];
+  const totalDeposited = deposits.reduce((sum: number, d: any) => sum + (d.amount || 0), 0);
+
+  const assignedEmployee = client.assigned_to
+    ? employees.find((e) => e.id === client.assigned_to)
+    : null;
 
   return (
     <MainLayout>
@@ -101,13 +118,13 @@ export default function ClientProfile() {
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold text-foreground">{client.name}</h1>
-              <Badge className={cn("font-medium", statusConfig[client.status].className)}>
+              <Badge className={cn("font-medium", statusInfo.className)}>
                 <StatusIcon className="ml-1 h-3 w-3" />
-                {statusConfig[client.status].label}
+                {statusInfo.label}
               </Badge>
             </div>
             <p className="text-muted-foreground mt-1">
-              كود العميل: {client.code} • تاريخ التسجيل: {new Date(client.createdAt).toLocaleDateString("ar-EG")}
+              كود العميل: {client.code} • تاريخ التسجيل: {new Date(client.created_at).toLocaleDateString("ar-EG")}
             </p>
           </div>
           <Button variant="outline">
@@ -141,10 +158,10 @@ export default function ClientProfile() {
                   <span>{client.email}</span>
                 </div>
               )}
-              {client.nationalId && (
+              {client.national_id && (
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span>{client.nationalId}</span>
+                  <span>{client.national_id}</span>
                 </div>
               )}
             </CardContent>
@@ -161,46 +178,44 @@ export default function ClientProfile() {
             <CardContent className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">عدد الإيداعات</span>
-                <span className="font-semibold">{(client as any).client_deposits?.length || 0}</span>
+                <span className="font-semibold">{deposits.length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">إجمالي المبالغ المودعة</span>
-                <span className="font-semibold">
-                  {(client as any).client_deposits?.reduce((sum: number, d: any) => sum + (d.amount || 0), 0).toLocaleString() || '0'} ج.م
-                </span>
+                <span className="font-semibold">{totalDeposited.toLocaleString()} ج.م</span>
               </div>
               <Separator />
               <div className="flex justify-between">
                 <span className="text-muted-foreground">حالة العميل</span>
-                <span className="font-semibold text-success">{statusConfig[client.status].label}</span>
+                <span className="font-semibold text-success">{statusInfo.label}</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Assigned Employee */}
-          {client.assigned_to && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <User className="h-4 w-4 text-primary" />
-                  الموظف المسؤول
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <User className="h-4 w-4 text-primary" />
+                الموظف المسؤول
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {assignedEmployee ? (
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                     <User className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">معين للموظف</p>
-                    <p className="text-sm text-muted-foreground">{client.assigned_to}</p>
+                    <p className="font-medium">{assignedEmployee.full_name || assignedEmployee.email}</p>
+                    <p className="text-sm text-muted-foreground">{assignedEmployee.email}</p>
                   </div>
                 </div>
-                <Separator />
-                <p className="text-sm text-muted-foreground">معرف الموظف المسؤول عن هذا العميل</p>
-              </CardContent>
-            </Card>
-          )}
+              ) : (
+                <p className="text-sm text-muted-foreground">لم يتم تعيين موظف مسؤول</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Tabs Section */}
@@ -228,30 +243,107 @@ export default function ClientProfile() {
           <TabsContent value="deposits" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>الإيداعات</CardTitle>
-                <CardDescription>جميع إيداعات العميل</CardDescription>
+                <CardTitle>الإيداعات والسحوبات</CardTitle>
+                <CardDescription>جميع إيداعات العميل ومواعيد السحب</CardDescription>
               </CardHeader>
               <CardContent>
-                {(client as any).client_deposits && (client as any).client_deposits.length > 0 ? (
+                {deposits.length > 0 ? (
                   <div className="space-y-6">
-                    {(client as any).client_deposits.map((deposit: any) => (
-                      <div key={deposit.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <p className="font-semibold">{deposit.deposit_number}</p>
-                            <p className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(deposit.deposit_date).toLocaleDateString("ar-EG")}
-                            </p>
+                    {deposits.map((deposit: any) => {
+                      const schedules = deposit.withdrawal_schedules ?? [];
+                      const totalScheduled = schedules.reduce((s: number, w: any) => s + (w.amount || 0), 0);
+                      const completedCount = schedules.filter((w: any) => w.status === 'completed').length;
+                      const upcomingCount = schedules.filter((w: any) => w.status === 'upcoming').length;
+                      const overdueCount = schedules.filter((w: any) => w.status === 'overdue').length;
+                      const depositStatus = depositStatusConfig[deposit.status] ?? { label: deposit.status, className: "bg-muted text-muted-foreground" };
+
+                      return (
+                        <div key={deposit.id} className="border rounded-lg p-4 space-y-4">
+                          {/* Deposit Header */}
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-semibold text-lg">{deposit.deposit_number}</p>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                تاريخ الإيداع: {new Date(deposit.deposit_date).toLocaleDateString("ar-EG")}
+                              </p>
+                            </div>
+                            <div className="text-left space-y-1">
+                              <p className="text-xl font-bold">{deposit.amount.toLocaleString()} ج.م</p>
+                              <p className="text-sm text-success">{deposit.profit_rate || 0}% ربح سنوي</p>
+                              <Badge className={depositStatus.className}>{depositStatus.label}</Badge>
+                            </div>
                           </div>
-                          <div className="text-left">
-                            <p className="text-xl font-bold">{deposit.amount.toLocaleString()} ج.م</p>
-                            <p className="text-sm text-success">{deposit.profit_rate || 0}% ربح</p>
-                            <Badge className="mt-2">{deposit.status}</Badge>
-                          </div>
+
+                          {/* Withdrawal Schedule Summary */}
+                          {schedules.length > 0 && (
+                            <>
+                              <Separator />
+                              <div className="grid grid-cols-4 gap-3 text-center text-sm">
+                                <div className="bg-muted/50 rounded p-2">
+                                  <p className="text-muted-foreground">إجمالي السحوبات</p>
+                                  <p className="font-bold">{schedules.length}</p>
+                                </div>
+                                <div className="bg-success/5 rounded p-2">
+                                  <p className="text-muted-foreground">مكتمل</p>
+                                  <p className="font-bold text-success">{completedCount}</p>
+                                </div>
+                                <div className="bg-warning/5 rounded p-2">
+                                  <p className="text-muted-foreground">قادم</p>
+                                  <p className="font-bold text-warning">{upcomingCount}</p>
+                                </div>
+                                <div className="bg-destructive/5 rounded p-2">
+                                  <p className="text-muted-foreground">متأخر</p>
+                                  <p className="font-bold text-destructive">{overdueCount}</p>
+                                </div>
+                              </div>
+
+                              {/* Withdrawal Schedules Table */}
+                              <div>
+                                <p className="text-sm font-medium mb-2">جدول السحوبات</p>
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="text-right">تاريخ الاستحقاق</TableHead>
+                                      <TableHead className="text-right">المبلغ</TableHead>
+                                      <TableHead className="text-right">الحالة</TableHead>
+                                      <TableHead className="text-right">تاريخ السداد</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {schedules.map((ws: any) => {
+                                      const wsStatus = withdrawalStatusConfig[ws.status as keyof typeof withdrawalStatusConfig] ?? { label: ws.status, className: "bg-muted text-muted-foreground", icon: Clock };
+                                      const WsIcon = wsStatus.icon;
+                                      return (
+                                        <TableRow key={ws.id}>
+                                          <TableCell>{new Date(ws.due_date).toLocaleDateString("ar-EG")}</TableCell>
+                                          <TableCell className="font-medium">{ws.amount.toLocaleString()} ج.م</TableCell>
+                                          <TableCell>
+                                            <Badge className={cn("gap-1", wsStatus.className)}>
+                                              <WsIcon className="h-3 w-3" />
+                                              {wsStatus.label}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="text-muted-foreground">
+                                            {ws.completed_date
+                                              ? new Date(ws.completed_date).toLocaleDateString("ar-EG")
+                                              : "—"}
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            </>
+                          )}
+
+                          {schedules.length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-2">لا توجد سحوبات مجدولة لهذا الإيداع</p>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-8">
@@ -281,8 +373,14 @@ export default function ClientProfile() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">الحالة</p>
-                    <p className="font-medium">{statusConfig[client.status].label}</p>
+                    <p className="font-medium">{statusInfo.label}</p>
                   </div>
+                  {client.notes && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">ملاحظات</p>
+                      <p className="font-medium">{client.notes}</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
