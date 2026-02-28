@@ -237,6 +237,79 @@ export default function FinancialCalendar() {
       });
     }
 
+    // ── Projected withdraw events ──────────────────────────────────────────
+    // withdrawal_schedules only has rows for clients whose schedules were
+    // explicitly created. Project a "withdraw" event for every deposit that
+    // has NO real schedule row in this calendar month.
+    const depositsWithRealWithdrawal = new Set(withdrawals.map((w) => w.deposit_id));
+    const projectedWithdrawEvents: CalendarEvent[] = [];
+
+    for (const deposit of allDeposits) {
+      if (!deposit.deposit_date) continue;
+      if (depositsWithRealWithdrawal.has(deposit.id)) continue; // real row exists
+
+      const depDate = new Date(deposit.deposit_date);
+      const depYear = depDate.getFullYear();
+      const depMonth = depDate.getMonth();
+
+      // Withdrawals start the month AFTER the deposit month
+      if (depYear * 12 + depMonth >= calYear * 12 + calMonth) continue;
+
+      const depDay = depDate.getDate();
+      const dayInCalMonth = Math.min(depDay, daysInCalMonth);
+      const eventDate = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(dayInCalMonth).padStart(2, "0")}`;
+
+      const monthlyProfit =
+        typeof deposit.amount === "number" && typeof deposit.profit_rate === "number"
+          ? (deposit.amount * deposit.profit_rate) / 100
+          : undefined;
+
+      projectedWithdrawEvents.push({
+        id: `projected-withdraw-${deposit.id}`,
+        date: eventDate,
+        type: "withdraw" as const,
+        client: deposit.clients?.name ?? "عميل غير معروف",
+        clientCode: deposit.clients?.code,
+        clientPhone: deposit.clients?.phone,
+        amount: monthlyProfit,
+        status: "upcoming" as const,
+        depositId: deposit.id,
+        depositNumber: deposit.deposit_number,
+        depositAmount: deposit.amount,
+        profitRate: deposit.profit_rate,
+        depositDate: deposit.deposit_date,
+        depositStatus: deposit.status,
+      });
+    }
+
+    // For clients with NO deposit entry, add a projected withdraw using created_at
+    for (const client of allClients) {
+      if (clientsWithDeposits.has(client.id)) continue; // has deposit → already projected above
+      if (!client.created_at) continue;
+
+      const createdDate = new Date(client.created_at);
+      const createdYear = createdDate.getFullYear();
+      const createdMonth = createdDate.getMonth();
+
+      // Withdrawals start the month AFTER registration
+      if (createdYear * 12 + createdMonth >= calYear * 12 + calMonth) continue;
+
+      const createdDay = createdDate.getDate();
+      const dayInCalMonth = Math.min(createdDay, daysInCalMonth);
+      const eventDate = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(dayInCalMonth).padStart(2, "0")}`;
+
+      projectedWithdrawEvents.push({
+        id: `projected-withdraw-client-${client.id}`,
+        date: eventDate,
+        type: "withdraw" as const,
+        client: client.name,
+        clientCode: client.code ?? undefined,
+        clientPhone: client.phone ?? undefined,
+        amount: undefined,
+        status: "upcoming" as const,
+      });
+    }
+
     const meetingEvents = meetings.map((meeting) => ({
       id: meeting.id,
       date: meeting.meeting_date,
@@ -255,7 +328,7 @@ export default function FinancialCalendar() {
       status: "upcoming" as const,
     }));
 
-    return [...withdrawalEvents, ...depositEvents, ...meetingEvents, ...posterEvents];
+    return [...withdrawalEvents, ...projectedWithdrawEvents, ...depositEvents, ...meetingEvents, ...posterEvents];
   }, [withdrawals, allDeposits, allClients, meetings, posters, monthStart, monthEnd]);
 
   const selectedDepositSummary = useMemo(() => {
