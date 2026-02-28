@@ -40,6 +40,7 @@ import {
   useWithdrawalsByDeposit,
 } from "@/hooks/queries/useWithdrawals";
 import { useClientsWithDeposits } from "@/hooks/queries/useClients";
+import { useAllDepositsWithClients } from "@/hooks/queries/useDeposits";
 import { useMeetings } from "@/hooks/queries/useMeetings";
 import { usePosters } from "@/hooks/queries/usePosters";
 import { format, startOfMonth, endOfMonth } from "date-fns";
@@ -94,8 +95,10 @@ export default function FinancialCalendar() {
   const [newEventAmount, setNewEventAmount] = useState("");
   const [selectedDepositId, setSelectedDepositId] = useState("");
 
-  // Fetch clients with deposits for the dialog
+  // Fetch clients with deposits for the add-event dialog
   const { data: clients = [] } = useClientsWithDeposits();
+  // Fetch ALL deposits with client info — flat query, no nested limit issue
+  const { data: allDeposits = [] } = useAllDepositsWithClients();
   const createWithdrawal = useCreateWithdrawal();
 
   const selectedEventDepositId = selectedEvent?.depositId;
@@ -160,49 +163,45 @@ export default function FinancialCalendar() {
       };
     });
 
-    // Show every active deposit as a recurring monthly event.
-    // Each deposit appears on the same day-of-month as its deposit_date,
-    // for every month from the deposit date onwards.
+    // Show every deposit as a recurring monthly event (flat query — no nesting limit).
+    // Each deposit appears on the same day-of-month as its deposit_date every month.
+    // No status filter — all clients appear regardless of deposit status.
     const depositEvents: CalendarEvent[] = [];
     const calYear = currentDate.getFullYear();
     const calMonth = currentDate.getMonth(); // 0-indexed
     const daysInCalMonth = new Date(calYear, calMonth + 1, 0).getDate();
 
-    for (const client of clients) {
-      for (const deposit of (client.client_deposits || [])) {
-        if (!deposit.deposit_date) continue;
-        // Skip closed deposits
-        if (deposit.status === "completed" || deposit.status === "cancelled") continue;
+    for (const deposit of allDeposits) {
+      if (!deposit.deposit_date) continue;
 
-        const depDate = new Date(deposit.deposit_date);
-        const depYear = depDate.getFullYear();
-        const depMonth = depDate.getMonth(); // 0-indexed
+      const depDate = new Date(deposit.deposit_date);
+      const depYear = depDate.getFullYear();
+      const depMonth = depDate.getMonth();
 
-        // Only show for months at or after the deposit month
-        if (depYear * 12 + depMonth > calYear * 12 + calMonth) continue;
+      // Only show for months at or after the deposit's own month
+      if (depYear * 12 + depMonth > calYear * 12 + calMonth) continue;
 
-        // Project onto the current month (cap day at month length, e.g. Jan 31 → Feb 28)
-        const depDay = depDate.getDate();
-        const dayInCalMonth = Math.min(depDay, daysInCalMonth);
-        const eventDate = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(dayInCalMonth).padStart(2, "0")}`;
+      // Project to the same day-of-month in the current calendar month
+      const depDay = depDate.getDate();
+      const dayInCalMonth = Math.min(depDay, daysInCalMonth);
+      const eventDate = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(dayInCalMonth).padStart(2, "0")}`;
 
-        depositEvents.push({
-          id: `contract-${deposit.id}`,
-          date: eventDate,
-          type: "deposit" as const,
-          client: client.name,
-          clientCode: client.code,
-          clientPhone: client.phone,
-          amount: deposit.amount,
-          status: "done" as const,
-          depositId: deposit.id,
-          depositNumber: deposit.deposit_number,
-          depositAmount: deposit.amount,
-          profitRate: deposit.profit_rate,
-          depositDate: deposit.deposit_date,
-          depositStatus: deposit.status,
-        });
-      }
+      depositEvents.push({
+        id: `contract-${deposit.id}`,
+        date: eventDate,
+        type: "deposit" as const,
+        client: deposit.clients?.name ?? "عميل غير معروف",
+        clientCode: deposit.clients?.code,
+        clientPhone: deposit.clients?.phone,
+        amount: deposit.amount,
+        status: "done" as const,
+        depositId: deposit.id,
+        depositNumber: deposit.deposit_number,
+        depositAmount: deposit.amount,
+        profitRate: deposit.profit_rate,
+        depositDate: deposit.deposit_date,
+        depositStatus: deposit.status,
+      });
     }
 
     const meetingEvents = meetings.map((meeting) => ({
@@ -224,7 +223,7 @@ export default function FinancialCalendar() {
     }));
 
     return [...withdrawalEvents, ...depositEvents, ...meetingEvents, ...posterEvents];
-  }, [withdrawals, clients, meetings, posters, monthStart, monthEnd]);
+  }, [withdrawals, allDeposits, meetings, posters, monthStart, monthEnd]);
 
   const selectedDepositSummary = useMemo(() => {
     const totalScheduled = depositWithdrawals.reduce((sum, w) => sum + w.amount, 0);

@@ -12,10 +12,38 @@ import type {
 } from '@/types/database';
 import { ApiError } from '@/lib/errors';
 
+export interface DepositWithClient extends ClientDeposit {
+  clients: {
+    id: string;
+    name: string;
+    code: string;
+    phone: string;
+  } | null;
+}
+
 /**
  * List all deposits with optional filters
  */
 export const depositsApi = {
+  /**
+   * List ALL deposits with client info — flat query (no nesting), returns every row
+   */
+  async listAllWithClients(): Promise<DepositWithClient[]> {
+    try {
+      const { data, error } = await supabase
+        .from('client_deposits')
+        .select('*, clients(id, name, code, phone)')
+        .order('deposit_date', { ascending: false })
+        .limit(5000);
+
+      if (error) throw new ApiError(error.message, error.code, error.details);
+      return (data || []) as DepositWithClient[];
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError('فشل في تحميل بيانات الإيداعات', 'UNKNOWN_ERROR');
+    }
+  },
+
   async list(filters?: {
     clientId?: string;
     status?: string;
