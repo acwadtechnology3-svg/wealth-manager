@@ -51,6 +51,7 @@ export const queryKeys = {
     listWithDeposits: () => [...queryKeys.clients.all, 'list-with-deposits'] as const,
     details: () => [...queryKeys.clients.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.clients.details(), id] as const,
+    fullDetails: (id: string) => [...queryKeys.clients.all, 'full-details', id] as const,
     deposits: (clientId: string) => [...queryKeys.clients.detail(clientId), 'deposits'] as const,
     stats: () => [...queryKeys.clients.all, 'stats'] as const,
   },

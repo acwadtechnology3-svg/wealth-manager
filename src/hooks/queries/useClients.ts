@@ -59,9 +59,10 @@ export function useClientWithDeposits(id: string | undefined) {
  */
 export function useClientFullDetails(id: string | undefined) {
   return useQuery({
-    queryKey: queryKeys.clients.detail(id!),
+    queryKey: queryKeys.clients.fullDetails(id!),
     queryFn: () => clientsApi.getFullDetails(id!),
     enabled: !!id,
+    staleTime: 0, // always fetch fresh — nested data must not come from basic client cache
   });
 }
 

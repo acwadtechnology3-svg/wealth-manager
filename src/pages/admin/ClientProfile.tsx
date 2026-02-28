@@ -5,6 +5,7 @@ import {
   Phone,
   Mail,
   CreditCard,
+  MapPin,
   Calendar,
   TrendingUp,
   User,
@@ -162,6 +163,12 @@ export default function ClientProfile() {
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                   <span>{client.national_id}</span>
+                </div>
+              )}
+              {client.address && (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{client.address}</span>
                 </div>
               )}
             </CardContent>

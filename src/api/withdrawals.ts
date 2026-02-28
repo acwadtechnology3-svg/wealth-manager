@@ -105,7 +105,7 @@ export const withdrawalsApi = {
           )
         `)
         .order('due_date', { ascending: true })
-        .limit(1000);
+        .limit(5000);
 
       if (filters?.status) {
         query = query.eq('status', filters.status);

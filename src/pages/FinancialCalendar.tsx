@@ -160,6 +160,34 @@ export default function FinancialCalendar() {
       };
     });
 
+    // Add deposit events: show each deposit contract on its deposit_date for the current month
+    const depositEvents: CalendarEvent[] = [];
+    for (const client of clients) {
+      for (const deposit of (client.client_deposits || [])) {
+        if (
+          deposit.deposit_date >= monthStart &&
+          deposit.deposit_date <= monthEnd
+        ) {
+          depositEvents.push({
+            id: `dep-${deposit.id}`,
+            date: deposit.deposit_date,
+            type: "deposit" as const,
+            client: client.name,
+            clientCode: client.code,
+            clientPhone: client.phone,
+            amount: deposit.amount,
+            status: "done" as const,
+            depositId: deposit.id,
+            depositNumber: deposit.deposit_number,
+            depositAmount: deposit.amount,
+            profitRate: deposit.profit_rate,
+            depositDate: deposit.deposit_date,
+            depositStatus: deposit.status,
+          });
+        }
+      }
+    }
+
     const meetingEvents = meetings.map((meeting) => ({
       id: meeting.id,
       date: meeting.meeting_date,
@@ -178,8 +206,8 @@ export default function FinancialCalendar() {
       status: "upcoming" as const,
     }));
 
-    return [...withdrawalEvents, ...meetingEvents, ...posterEvents];
-  }, [withdrawals, meetings, posters]);
+    return [...withdrawalEvents, ...depositEvents, ...meetingEvents, ...posterEvents];
+  }, [withdrawals, clients, meetings, posters, monthStart, monthEnd]);
 
   const selectedDepositSummary = useMemo(() => {
     const totalScheduled = depositWithdrawals.reduce((sum, w) => sum + w.amount, 0);

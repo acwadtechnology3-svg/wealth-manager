@@ -206,8 +206,8 @@ export const clientsApi = {
           *,
           client_deposits (*)
         `)
-        .eq('status', 'active')
-        .order('name', { ascending: true });
+        .order('name', { ascending: true })
+        .limit(5000);
 
       if (error) throw new ApiError(error);
 
