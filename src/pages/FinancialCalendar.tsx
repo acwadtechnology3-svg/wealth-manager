@@ -39,7 +39,7 @@ import {
   useCreateWithdrawal,
   useWithdrawalsByDeposit,
 } from "@/hooks/queries/useWithdrawals";
-import { useClientsWithDeposits } from "@/hooks/queries/useClients";
+import { useClientsWithDeposits, useClients } from "@/hooks/queries/useClients";
 import { useAllDepositsWithClients } from "@/hooks/queries/useDeposits";
 import { useMeetings } from "@/hooks/queries/useMeetings";
 import { usePosters } from "@/hooks/queries/usePosters";
@@ -99,6 +99,8 @@ export default function FinancialCalendar() {
   const { data: clients = [] } = useClientsWithDeposits();
   // Fetch ALL deposits with client info — flat query, no nested limit issue
   const { data: allDeposits = [] } = useAllDepositsWithClients();
+  // Fetch ALL clients so we can show clients who have no deposit entry yet
+  const { data: allClients = [] } = useClients();
   const createWithdrawal = useCreateWithdrawal();
 
   const selectedEventDepositId = selectedEvent?.depositId;
@@ -171,6 +173,9 @@ export default function FinancialCalendar() {
     const calMonth = currentDate.getMonth(); // 0-indexed
     const daysInCalMonth = new Date(calYear, calMonth + 1, 0).getDate();
 
+    // Track which client IDs are already covered by a deposit entry
+    const clientsWithDeposits = new Set(allDeposits.map((d) => d.client_id));
+
     for (const deposit of allDeposits) {
       if (!deposit.deposit_date) continue;
 
@@ -204,6 +209,34 @@ export default function FinancialCalendar() {
       });
     }
 
+    // For clients with NO deposit entry, use their created_at date as the contract day
+    for (const client of allClients) {
+      if (clientsWithDeposits.has(client.id)) continue; // already shown via deposit
+      if (!client.created_at) continue;
+
+      const createdDate = new Date(client.created_at);
+      const createdYear = createdDate.getFullYear();
+      const createdMonth = createdDate.getMonth();
+
+      // Only show for months at or after the client's registration month
+      if (createdYear * 12 + createdMonth > calYear * 12 + calMonth) continue;
+
+      const createdDay = createdDate.getDate();
+      const dayInCalMonth = Math.min(createdDay, daysInCalMonth);
+      const eventDate = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(dayInCalMonth).padStart(2, "0")}`;
+
+      depositEvents.push({
+        id: `client-${client.id}`,
+        date: eventDate,
+        type: "deposit" as const,
+        client: client.name,
+        clientCode: client.code ?? undefined,
+        clientPhone: client.phone ?? undefined,
+        amount: undefined,
+        status: "upcoming" as const,
+      });
+    }
+
     const meetingEvents = meetings.map((meeting) => ({
       id: meeting.id,
       date: meeting.meeting_date,
@@ -223,7 +256,7 @@ export default function FinancialCalendar() {
     }));
 
     return [...withdrawalEvents, ...depositEvents, ...meetingEvents, ...posterEvents];
-  }, [withdrawals, allDeposits, meetings, posters, monthStart, monthEnd]);
+  }, [withdrawals, allDeposits, allClients, meetings, posters, monthStart, monthEnd]);
 
   const selectedDepositSummary = useMemo(() => {
     const totalScheduled = depositWithdrawals.reduce((sum, w) => sum + w.amount, 0);

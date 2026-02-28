@@ -102,27 +102,56 @@ export const clientsApi = {
 
   /**
    * Get client with full details (deposits and withdrawal schedules)
+   * Uses 3 separate flat queries to avoid PostgREST nested-row truncation.
    */
   async getFullDetails(id: string): Promise<ClientFullDetails> {
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select(
-          `
-          *,
-          client_deposits (
-            *,
-            withdrawal_schedules (*)
-          )
-        `
-        )
-        .eq('id', id)
-        .single();
+      // Step 1 & 2 in parallel: client info + all deposits (flat — no nesting limit)
+      const [
+        { data: client, error: clientError },
+        { data: deposits, error: depositsError },
+      ] = await Promise.all([
+        supabase.from('clients').select('*').eq('id', id).single(),
+        supabase
+          .from('client_deposits')
+          .select('*')
+          .eq('client_id', id)
+          .order('deposit_date', { ascending: false })
+          .limit(200),
+      ]);
 
-      if (error) throw new ApiError(error);
-      if (!data) throw new Error('Client not found');
+      if (clientError) throw new ApiError(clientError);
+      if (!client) throw new Error('Client not found');
+      if (depositsError) throw new ApiError(depositsError);
 
-      return data as ClientFullDetails;
+      const depositList = deposits || [];
+      const depositIds = depositList.map((d) => d.id);
+
+      // Step 3 sequential: fetch schedules using deposit IDs
+      const schedulesByDeposit: Record<string, unknown[]> = {};
+      if (depositIds.length > 0) {
+        const { data: schedulesData, error: schedulesError } = await supabase
+          .from('withdrawal_schedules')
+          .select('*')
+          .in('deposit_id', depositIds)
+          .order('due_date', { ascending: true })
+          .limit(2000);
+
+        if (schedulesError) throw new ApiError(schedulesError);
+        for (const s of schedulesData || []) {
+          const depositId = (s as { deposit_id: string }).deposit_id;
+          (schedulesByDeposit[depositId] ??= []).push(s);
+        }
+      }
+
+      return {
+        ...client,
+        client_deposits: depositList.map((d) => ({
+          ...d,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          withdrawal_schedules: (schedulesByDeposit[d.id] || []) as any,
+        })),
+      } as ClientFullDetails;
     } catch (error) {
       throw new ApiError(error);
     }
