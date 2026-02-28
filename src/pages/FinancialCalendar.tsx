@@ -160,31 +160,48 @@ export default function FinancialCalendar() {
       };
     });
 
-    // Add deposit events: show each deposit contract on its deposit_date for the current month
+    // Show every active deposit as a recurring monthly event.
+    // Each deposit appears on the same day-of-month as its deposit_date,
+    // for every month from the deposit date onwards.
     const depositEvents: CalendarEvent[] = [];
+    const calYear = currentDate.getFullYear();
+    const calMonth = currentDate.getMonth(); // 0-indexed
+    const daysInCalMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
     for (const client of clients) {
       for (const deposit of (client.client_deposits || [])) {
-        if (
-          deposit.deposit_date >= monthStart &&
-          deposit.deposit_date <= monthEnd
-        ) {
-          depositEvents.push({
-            id: `dep-${deposit.id}`,
-            date: deposit.deposit_date,
-            type: "deposit" as const,
-            client: client.name,
-            clientCode: client.code,
-            clientPhone: client.phone,
-            amount: deposit.amount,
-            status: "done" as const,
-            depositId: deposit.id,
-            depositNumber: deposit.deposit_number,
-            depositAmount: deposit.amount,
-            profitRate: deposit.profit_rate,
-            depositDate: deposit.deposit_date,
-            depositStatus: deposit.status,
-          });
-        }
+        if (!deposit.deposit_date) continue;
+        // Skip closed deposits
+        if (deposit.status === "completed" || deposit.status === "cancelled") continue;
+
+        const depDate = new Date(deposit.deposit_date);
+        const depYear = depDate.getFullYear();
+        const depMonth = depDate.getMonth(); // 0-indexed
+
+        // Only show for months at or after the deposit month
+        if (depYear * 12 + depMonth > calYear * 12 + calMonth) continue;
+
+        // Project onto the current month (cap day at month length, e.g. Jan 31 → Feb 28)
+        const depDay = depDate.getDate();
+        const dayInCalMonth = Math.min(depDay, daysInCalMonth);
+        const eventDate = `${calYear}-${String(calMonth + 1).padStart(2, "0")}-${String(dayInCalMonth).padStart(2, "0")}`;
+
+        depositEvents.push({
+          id: `contract-${deposit.id}`,
+          date: eventDate,
+          type: "deposit" as const,
+          client: client.name,
+          clientCode: client.code,
+          clientPhone: client.phone,
+          amount: deposit.amount,
+          status: "done" as const,
+          depositId: deposit.id,
+          depositNumber: deposit.deposit_number,
+          depositAmount: deposit.amount,
+          profitRate: deposit.profit_rate,
+          depositDate: deposit.deposit_date,
+          depositStatus: deposit.status,
+        });
       }
     }
 
